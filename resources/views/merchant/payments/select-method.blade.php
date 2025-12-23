@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" id="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('app.name', 'iPay BD Payment') }}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0d6efd',
+                        secondary: '#6c757d',
+                        success: '#198754',
+                        danger: '#dc3545',
+                        warning: '#ffc107',
+                        info: '#0dcaf0',
+                    },
+                    fontFamily: {
+                        'roboto': ['Roboto', 'sans-serif'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 0.5s linear infinite',
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': {
+                                opacity: '0'
+                            },
+                            '100%': {
+                                opacity: '1'
+                            },
+                        },
+                        slideUp: {
+                            '0%': {
+                                transform: 'translateY(20px)',
+                                opacity: '0'
+                            },
+                            '100%': {
+                                transform: 'translateY(0)',
+                                opacity: '1'
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        /* Custom loader animation */
+        .loader {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 64px;
+            height: 64px;
+            animation: spin 0.5s linear infinite;
+            display: none;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Payment method hover effects */
+        .payment-method-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .payment-method-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Gradient backgrounds */
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-success {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        }
+
+        .gradient-danger {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-roboto">
+
+    @php
+        $app_name = app_config('AppName');
+        $support_number = app_config('support_whatsapp_number');
+        $image = app_config('AppLogo');
+        $wallet_status = app_config('wallet_payment_status');
+        $onlineCheckingTime = env('PAYMENT_TIME');
+    @endphp
+
+    <!-- Your content that will be populated by AJAX response -->
+    <div id="content"></div>
+
+    <div class="container mx-auto px-4 py-4">
+        <div class="max-w-lg mx-auto">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden animate-slide-up">
+                <!-- Header with WhatsApp Support -->
+                <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
+                    <div class="flex justify-between items-center">
+                        <div class="text-white">
+                            <h1 class="text-lg font-bold">Payment Gateway</h1>
+                            <p class="text-blue-100 text-xs">Secure & Fast Processing</p>
+                        </div>
+                        <a href="https://wa.me/{{ $support_number }}" target="_blank"
+                            class="bg-blue-500 hover:bg-blue-600 rounded-full p-2 transition-all duration-300 hover:scale-110 shadow-lg"
+                            title="Chat with us on WhatsApp">
+                            <i class="fas fa-headset text-white text-lg"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    @if (session()->has('alert'))
+                        <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg animate-fade-in"
+                            id="alert_success">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-check-circle text-green-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-green-700 font-medium">{{ session('alert') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Logo and Title Section -->
+                    <div class="text-center mb-6">
+                        <div class="relative inline-block">
+                            <img src="{{ asset('storage/' . $image) }}" alt="{{ $app_name }} logo"
+                                class="w-16 h-16 mx-auto mb-2 rounded-full shadow-md ring-2 ring-blue-100 object-contain bg-white p-1">
+                            <div
+                                class="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                                <i class="fas fa-shield-alt text-xs"></i>
+                            </div>
+                        </div>
+                        <h2 class="text-lg font-bold text-gray-800 mb-1">{{ $app_name }}</h2>
+                        <p class="text-gray-600 text-sm">Secure Payment System</p>
+                        <input type="hidden" name="wallet_status" value="{{ $wallet_status }}" id="wallet_status">
+                    </div>
+
+                    <!-- Payment Method Switcher -->
+                    <div class="max-w-sm mx-auto mb-6">
+                        <div class="bg-gray-100 p-1 rounded-lg flex">
+                            @if ($wallet_status == 'true')
+                                <button
+                                    class="flex-1 py-2 px-3 rounded-md font-medium text-xs transition-all duration-300 payment-switcher bg-blue-600 text-white shadow-sm"
+                                    attr-value="wallet">
+                                    <i class="fas fa-wallet mr-1"></i>
+                                    Wallet
+                                </button>
+                            @endif
+                            <button
+                                class="flex-1 py-2 px-3 rounded-md font-medium text-xs transition-all duration-300 payment-switcher text-gray-600 hover:text-gray-800"
+                                attr-value="mobile-banking">
+                                <i class="fas fa-mobile-alt mr-1"></i>
+                                Mobile Banking
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Wallet Section -->
+                    <div class="max-w-sm mx-auto mb-6" id="wallet-div">
+                        <div class="space-y-4">
+                            <!-- Loader -->
+                            <div id="loader" class="loader"></div>
+
+                            <!-- Mobile/Email Input -->
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-user text-gray-400 text-sm"></i>
+                                </div>
+                                <input type="text" name="email_or_phone" id="mobile_input" required
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                                    placeholder="Enter Account Mobile or Email" autocomplete="off">
+                            </div>
+
+                            <!-- OTP Input -->
+                            <div class="relative hidden" id="otp-container">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-key text-gray-400 text-sm"></i>
+                                </div>
+                                <input type="tel" id="otp_input" maxlength="6" inputmode="numeric" pattern="[0-9]*"
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-center tracking-widest"
+                                    placeholder="Enter 6 digit OTP" autocomplete="one-time-code">
+                            </div>
+
+                            <!-- Proceed Buttons -->
+                            <button type="button"
+                                class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
+                                id="wallet-proceed">
+                                <i class="fas fa-arrow-right mr-2"></i>
+                                Proceed
+                            </button>
+
+                            <button type="button"
+                                class="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg hidden"
+                                id="otp-proceed">
+                                <i class="fas fa-check mr-2"></i>
+                                Verify OTP
+                            </button>
+
+                            <!-- Create Account Link -->
+                            <div class="text-center pt-3 border-t border-gray-200">
+                                <p class="text-gray-600 mb-2 text-sm">Don't have an account?</p>
+                                <a class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors duration-300 text-sm"
+                                    href="https://ipaybd.com/customer/create-account" target="_blank">
+                                    <i class="fas fa-user-plus mr-1"></i>
+                                    Create Account
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" value="{{ $payment_request->request_id }}" name="request_id_input"
+                        id="request_id_input" autocomplete="off">
+
+                    <!-- Mobile Banking Section -->
+                    <div class="max-w-sm mx-auto mb-6 hidden" id="mfs-operator-div">
+                        <h3 class="text-xs font-medium text-gray-800 mb-2 text-center">Choose Payment Method</h3>
+
+                        <div class="grid grid-cols-4 gap-1.5">
+
+                        
+                         @if ($permission->v1_manual_gateway)
+                            @foreach (mfsList() as $item)
+                                        @php
+                                            $method = strtolower($item['deposit_method']);
+
+                                            // Set image path dynamically
+                                            $imagePath = match ($method) {
+                                                'bkash' => 'payments/bkash.png',
+                                                'nagad' => 'payments/nagad.png',
+                                                'rocket' => 'payments/rocket.png',
+                                                'upay' => 'payments/upay.png',
+                                                default => 'payments/default.png',
+                                            };
+
+                                            // Determine payment type & label
+                                            if ($item['action'] === 'automatic') {
+                                                $paymentType = 'P2C';
+                                                $label = 'Payment';
+                                            } elseif ($item['action'] === 'peer') {
+                                                $paymentType = 'P2P';
+                                                $label = 'Send Money';
+                                            } else {
+                                                $paymentType = 'P2A';
+                                                $label = 'Cash Out';
+                                            }
+                                        @endphp
+
+                                        {{-- ✅ Show based on permission --}}
+                                        @if (
+                                            ($paymentType == 'P2A' && $permission->v1_p2a) ||
+                                            ($paymentType == 'P2C' && $permission->v1_p2c) ||
+                                            ($paymentType == 'P2P' && $permission->v1_p2p)
+                                        )
+                                            <a href="{{ url("/checkout/payment/$payment_request->request_id/{$item['deposit_method']}/{$item['deposit_number']}/$paymentType") }}"
+                                            class="payment-method-card bg-white rounded p-1.5 border border-gray-200 hover:border-blue-400 transition-all duration-300 group">
+                                                <div class="flex flex-col items-center space-y-0.5">
+                                                    <div
+                                                        class="w-16 h-12 flex items-center justify-center bg-gray-50 rounded group-hover:bg-blue-50 transition-colors duration-300">
+                                                        <img src="{{ asset($imagePath) }}" class="w-14 h-10 object-contain"
+                                                            alt="{{ ucfirst($item['deposit_method']) }}" />
+                                                    </div>
+                                                    <span
+                                                        class="text-xs font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-300 text-center leading-tight">
+                                                        {{ ucfirst($item['deposit_method']) }} <br> {{ $label }}
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                    @endif
+
+
+                            <!-- API Payment Methods -->
+                            @if ($permission->v1_direct_gateway)
+                                @foreach ($paymentMethods as $paymentMethod)
+                                    @if ($paymentMethod->type == 'api')
+                                        <a href="#"
+                                            class="payment-method-card bg-white rounded p-1.5 border border-gray-200 hover:border-green-400 transition-all duration-300 group sbmtLink relative"
+                                            data-target="#form{{ $paymentMethod->id }}"
+                                            aria-label="Pay with API method">
+                                            <div class="flex flex-col items-center space-y-0.5">
+                                                <div
+                                                    class="w-16 h-12 flex items-center justify-center bg-gray-50 rounded group-hover:bg-green-50 transition-colors duration-300">
+                                                    <img src="{{ asset($paymentMethod->mfs->image) }}"
+                                                        class="w-14 h-10 object-contain" alt="Payment method"
+                                                        loading="lazy" />
+                                                </div>
+                                                <span
+                                                    class="text-xs font-medium text-gray-700 group-hover:text-green-600 transition-colors duration-300 text-center leading-tight">
+                                                    {{ ucfirst($paymentMethod->mfs->name) }} <br> Instant
+                                                </span>
+                                                <!-- API Badge -->
+                                                {{-- <span
+                                        class="absolute -top-0.5 -right-0.5 bg-gradient-success text-white text-xs font-bold px-1 py-0.5 rounded-full shadow-sm">
+                                        API
+                                    </span> --}}
+                                            </div>
+                                        </a>
+
+                                        <form id="form{{ $paymentMethod->id }}" class="hidden"
+                                            action="{{ route('live_api_submit') }}" method="POST">
+                                            @csrf
+                                            <input type="hidden" name="method_id" value="{{ $paymentMethod->id }}">
+                                            <input type="hidden" name="callback_url"
+                                                value="{{ $payment_request->callback_url }}">
+                                            <input type="hidden" name="currency"
+                                                value="{{ $payment_request->currency }}">
+                                            <input type="hidden" name="reference"
+                                                value="{{ $payment_request->reference }}">
+                                            <input type="hidden" name="request_id"
+                                                value="{{ $payment_request->request_id }}">
+                                            <input type="hidden" name="cust_name"
+                                                value="{{ $payment_request->cust_name }}">
+                                            <input type="hidden" name="cust_phone"
+                                                value="{{ $payment_request->cust_phone }}">
+                                            <input type="hidden" name="amount"
+                                                value="{{ $payment_request->amount }}">
+                                            <input type="hidden" name="merchant_id"
+                                                value="{{ $payment_request->merchant_id }}">
+                                            <input type="hidden" name="type" value="P2C">
+                                            <button type="submit" class="submitFormButton hidden">Submit</button>
+                                        </form>
+                                    @endif
+                                @endforeach
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="space-y-2 mb-4">
+                        <!-- Pay Button -->
+                        <div class="text-center">
+                            <button type="submit"
+                                class="w-32 h-10 relative overflow-hidden bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium px-2 rounded-md transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md group">
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700">
+                                </div>
+                                <div class="relative flex items-center justify-center h-full whitespace-nowrap">
+                                    <i class="fas fa-credit-card text-xs mr-1"></i>
+                                    <span class="font-semibold text-xs">Pay
+                                        {{ number_format($payment_request->amount, 2) }} ৳</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Cancel Button -->
+                        <div class="text-center">
+                            <button type="button"
+                                class="w-32 h-10 relative overflow-hidden bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium px-2 rounded-md transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md border border-red-400 hover:border-red-500 group"
+                                onClick="submitCancel('{{ $payment_request->request_id }}')">
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700">
+                                </div>
+                                <div class="relative flex items-center justify-center h-full whitespace-nowrap">
+                                    <i class="fas fa-times text-xs mr-1"></i>
+                                    <span class="font-semibold text-xs">Cancel Payment</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    @php
+                        $paymentTime = env('PAGE_TIME');
+                    @endphp
+
+                    <!-- Timer Section -->
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                        <div class="flex items-center justify-center mb-1">
+                            <i class="fas fa-clock text-red-500 mr-1 text-sm"></i>
+                            <span class="font-medium text-red-700 text-sm">Session Timer</span>
+                        </div>
+                        <p class="text-red-600 font-semibold text-sm">
+                            <span data-duration="{{ $paymentTime }}" id="timer"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ asset('static/backend/js/jquery.min.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <script>
+        $(document).ready(function() {
+            // Enhanced toastr configuration
+            toastr.options = {
+                closeButton: true,
+                debug: false,
+                newestOnTop: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                preventDuplicates: false,
+                onclick: null,
+                showDuration: "300",
+                hideDuration: "1000",
+                timeOut: "5000",
+                extendedTimeOut: "1000",
+                showEasing: "swing",
+                hideEasing: "linear",
+                showMethod: "fadeIn",
+                hideMethod: "fadeOut"
+            };
+
+            // Bind click event to all links with class 'sbmtLink'
+            $('.sbmtLink').on('click', function(e) {
+                e.preventDefault();
+
+                // Add loading state
+                $(this).addClass('opacity-50 pointer-events-none');
+
+                const targetForm = $(this).data('target');
+
+                if ($(targetForm).length) {
+                    $(targetForm).find('.submitFormButton').click();
+                } else {
+                    console.error('Form not found:', targetForm);
+                    $(this).removeClass('opacity-50 pointer-events-none');
+                }
+            });
+
+            // Add hover effects to payment method cards
+            $('.payment-method-card').hover(
+                function() {
+                    $(this).addClass('scale-105 shadow-xl');
+                },
+                function() {
+                    $(this).removeClass('scale-105 shadow-xl');
+                }
+            );
+
+            // Auto-hide success alert after 5 seconds
+            setTimeout(function() {
+                $('#alert_success').fadeOut('slow');
+            }, 5000);
+        });
+    </script>
+
+    <script>
+        // Function to show the loader
+        function showLoader() {
+            $("#loader").show();
+        }
+
+        // Function to hide the loader
+        function hideLoader() {
+            $("#loader").hide();
+        }
+
+
+
+        $(document).ready(function() {
+
+            $('#submitLink').on('click', function(e) {
+                e.preventDefault(); // Prevent default link behavior
+                console.log(e);
+                $('#submitFormButton').click(); // Trigger the hidden submit button
+            });
+
+            let get_wallet_status = $('#wallet_status').val();
+            let check = 1;
+
+
+            $(document).on('click', '.payment-switcher', function() {
+                if (check == 1) {
+                    // Update active state with Tailwind classes
+                    $(this).removeClass('text-gray-600').addClass('bg-blue-600 text-white shadow-md');
+                    $(this).siblings().removeClass('bg-blue-600 text-white shadow-md').addClass(
+                        'text-gray-600');
+
+                    let data = $(this).attr('attr-value');
+
+                    if (data == 'wallet') {
+                        $('#wallet-div').removeClass('hidden');
+                        $('#mfs-operator-div').addClass('hidden');
+                    } else if (data == 'mobile-banking') {
+                        $('#wallet-div').addClass('hidden');
+                        $('#mfs-operator-div').removeClass('hidden');
+                    }
+
+                    if (get_wallet_status == 'false') {
+                        check = 2;
+                    }
+                } else {
+                    return;
+                }
+            })
+
+            function make_active() {
+                if (get_wallet_status === 'true') {
+                    $('.payment-switcher[attr-value="wallet"]').trigger('click');
+                } else {
+                    $('.payment-switcher[attr-value="mobile-banking"]').trigger('click');
+                    // $('.wallet-wrap').addClass('d-none');
+                    // $('.logo-wrap').removeClass('d-none');
+                }
+            }
+
+            make_active();
+
+
+
+
+
+            $(document).on('click', '#wallet-proceed', function() {
+                let verifierInput = $('#mobile_input').val();
+                if (verifierInput == '') {
+                    toastr.warning('Please insert email or phone number of your wallet');
+                    return;
+                }
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show the loader before the AJAX request starts
+                    },
+                    url: '{{ url('checkout/payment/otp-send') }}', // Specify the URL of the server-side script or API endpoint
+                    type: 'POST',
+                    data: {
+                        'input_value': verifierInput
+                    },
+                    success: function(response) {
+                        hideLoader(); // Hide the loader after the AJAX request is completed
+                        if (response.success === false) {
+                            $.each(response.error, function(index, errorValue) {
+                                toastr.warning(errorValue);
+                            });
+                        } else if (response.success === true) {
+                            $.each(response.message, function(index, successValue) {
+                                $('#mobile_input').parent().addClass('hidden');
+                                $('#otp-container').removeClass('hidden');
+                                $('#wallet-proceed').addClass('hidden');
+                                $('#otp-proceed').text('Verify OTP').removeClass(
+                                    'hidden');
+                                toastr.success(successValue);
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error(error);
+                        hideLoader(); // Hide the loader even in case of an error
+
+                    }
+                });
+            })
+
+            $(document).on('click', '#otp-proceed', function() {
+                let otpInput = $('#otp_input').val();
+                let mobile = $('#mobile_input').val();
+                let request_id = $('#request_id_input').val();
+                if (otpInput == '') {
+                    toastr.warning('Otp should not be empty');
+                    return;
+                }
+
+                if (otpInput.length < 6 || otpInput.length > 6) {
+                    toastr.warning('Otp should be 6 characters long');
+                    return;
+                }
+
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    beforeSend: function() {
+                        showLoader(); // Show the loader before the AJAX request starts
+                    },
+                    url: '{{ url('checkout/payment/otp-verify') }}', // Specify the URL of the server-side script or API endpoint
+                    type: 'POST',
+                    data: {
+                        'otp_value': otpInput,
+                        'input_value': mobile,
+                        'request_id': request_id,
+                    },
+                    success: function(response) {
+
+                        if (response.success === false) {
+                            hideLoader(); // Hide the loader after the AJAX request is completed
+                            $.each(response.error, function(index, errorValue) {
+                                toastr.warning(errorValue);
+                            });
+                        } else if (response.success == true && response.hasOwnProperty('url')) {
+                            $(this).attr('disabled');
+                            $.each(response.message, function(index, successValue) {
+                                toastr.success(successValue);
+                            });
+                            hideLoader(); // Hide the loader after the AJAX request is completed
+                            setTimeout(function(e) {
+                                window.location.href = response.url;
+                            }, 1000);
+                        } else if (response.success === true) {
+                            toastr.success(response);
+
+                            $.each(response.message, function(index, successValue) {
+                                toastr.success(successValue);
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        toastr.error(error);
+                        hideLoader(); // Hide the loader after the AJAX request is completed
+                    }
+                });
+            })
+
+        })
+
+        $(document).ready(function() {
+            var timer = $('#timer');
+            var req_id = document.getElementById("request_id_input").value;
+            // console.log(req_id)
+
+
+            var duration = timer.data('duration');
+            let flag = true;
+
+            var interval = setInterval(function() {
+                let minutes = Math.floor(duration / 60);
+                let seconds = duration % 60;
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                timer.html('<i class="fas fa-exclamation-triangle mr-2"></i>Page expires in ' + minutes +
+                    ":" + seconds);
+
+
+                if (--duration < 0) {
+                    if (flag == true) {
+                        flag = false;
+
+                    }
+
+                    canceledRequest(req_id);
+
+
+                }
+
+            }, 1000);
+        });
+
+
+        function submitCancel(req_id) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Processing...',
+                        text: 'Please wait a moment.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        allowEnterKey: false,
+                        didOpen: () => {
+                            Swal.showLoading(); // Show the loading indicator
+                        }
+                    });
+
+                    $.ajax({
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        url: '{{ url('/checkout/payment/cancelled') }}',
+                        type: 'POST',
+                        data: {
+                            'request_id': req_id,
+                        },
+                        success: function(response) {
+
+                            Swal.close();
+                            if (response.success === true) {
+
+                                Swal.fire({
+                                    title: 'Completed!',
+                                    text: 'Your operation was successful.',
+                                    icon: 'success'
+                                });
+
+                                window.location.assign(response.url);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            toastr.error(error);
+                            Swal.close(); // Ensure the loader is hidden on error
+                        }
+                    });
+                }
+            });
+        }
+
+        function canceledRequest(req_id) {
+            return $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: '{{ url('/checkout/payment/cancelled') }}',
+                type: 'POST',
+                data: {
+                    'request_id': req_id
+                },
+                success: function(response) {
+                    console.log(response);
+
+                    if (response.success === false) {
+                        $.each(response.error, function(index, errorValue) {
+                            toastr.warning(errorValue);
+                        });
+                        return; // Exit function if there's an error
+                    }
+
+                    if (response.success === true) {
+                        toastr.success(response);
+                        window.location.assign(response.url);
+                    } else {
+                        console.log(response); // Fallback logging for unexpected cases
+                    }
+                },
+                error: function(xhr, status, error) {
+                    toastr.error(error);
+                    hideLoader(); // Hide the loader after the AJAX request is completed
+                }
+            });
+        }
+    </script>
+
+
+    {{-- bkash --}}
+
+    {{-- <script>
+        document.getElementById('getToken').addEventListener('click', function() {
+            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+            const url = 'https://tokenized.sandbox.bka.sh/v1.2.0-beta/tokenized/checkout/token/grant';
+            const data = {
+                app_key: '4f6o0cjiki2rfm34kfdadl1eqq',
+                app_secret: '2is7hdktrekvrbljjh44ll3d9l1dtjo4pasmjvs5vl5qr3fug4b'
+            };
+
+            fetch(proxyUrl + url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'username': 'sandboxTokenizedUser02',
+                        'password': 'sandboxTokenizedUser02@12345'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        });
+    </script> --}}
+
+    {{-- <script src="{{ asset('static/backend/js/validation.js') }}"> </script> --}}
+
+</body>
+
+</html>

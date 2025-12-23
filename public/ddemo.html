@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto max-w-lg bg-white shadow-lg rounded-2xl p-8 mt-10">
+        <h1 class="text-3xl font-bold text-center text-green-700 mb-6 tracking-wide">Payment Gateway</h1>
+        <div class="demo-balance-box flex items-center justify-between mb-6 bg-gradient-to-r from-blue-100 to-green-100 rounded-xl py-4 px-6 shadow">
+            <div class="flex items-center">
+                <span class="text-lg font-semibold text-green-700">Balance:</span>
+                <span id="demoBalance" class="ml-2 text-2xl font-bold text-green-900">0</span>
+                <span class="ml-1 text-green-700">BDT</span>
+            </div>
+            <button id="quickWithdrawBtn" class="ml-4 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white font-semibold rounded-lg shadow hover:from-yellow-500 hover:to-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition flex items-center gap-2">
+                <span>🏧</span> Withdraw
+            </button>
+        </div>
+        <div class="flex space-x-2 mb-8">
+            <button class="tab-btn flex-1 py-3 rounded-lg text-lg font-semibold transition-all duration-200 bg-gradient-to-r from-green-400 to-green-600 text-white shadow hover:from-green-500 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 active:scale-95" id="tabDeposit" onclick="openTab(event, 'createPaymentTab')">Deposit</button>
+        </div>
+        <div id="createPaymentTab" class="tab-content" style="display:block;">
+            <div class="mb-8 flex justify-center gap-6">
+                <button class="deposit-inner-tab-btn flex-1 max-w-xs py-3 rounded-xl text-lg font-bold transition-all duration-200 bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg hover:from-green-500 hover:to-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 active:scale-95 flex items-center justify-center gap-2" id="tabDepositNormal" onclick="openDepositInnerTab(event, 'depositNormalTab')">
+                    <span class="inline-block text-2xl">💳</span>
+                    <span>Gateway</span>
+                </button>
+                <button class="deposit-inner-tab-btn flex-1 max-w-xs py-3 rounded-xl text-lg font-bold transition-all duration-200 bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-lg hover:from-blue-500 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 active:scale-95 flex items-center justify-center gap-2" id="tabDepositInstant" onclick="openDepositInnerTab(event, 'depositInstantTab')">
+                    <span class="inline-block text-2xl">⚡</span>
+                    <span>Instant Deposit</span>
+                </button>
+            </div>
+            <div id="depositNormalTab" class="deposit-inner-tab-content" style="display:block;">
+                <form id="simplePaymentForm" class="flex flex-col items-center gap-6">
+                    <div class="w-full max-w-xs text-center">
+                        <label for="simple_amount" class="block text-lg font-semibold text-green-700 mb-2">Enter Amount (BDT)</label>
+                        <input type="number" id="simple_amount" name="amount" placeholder="Enter Amount" required value="" min="1" step="1" class="w-full text-center text-3xl font-bold text-gray-800 bg-green-50 border-2 border-green-400 rounded-xl py-5 px-2 shadow focus:border-blue-400 focus:outline-none transition" />
+                    </div>
+                    <input type="hidden" id="simple_reference" name="reference">
+                    <div id="errorMsg" class="hidden w-full max-w-xs text-center text-red-700 bg-red-100 rounded-lg py-2 px-3 mb-2"></div>
+                    <button type="submit" class="w-full max-w-xs bg-gradient-to-r from-green-400 to-green-600 text-white text-xl font-bold py-4 rounded-xl shadow hover:from-green-500 hover:to-green-700 transition flex items-center justify-center gap-2">
+                        <span>💳</span> Make Deposit
+                    </button>
+                </form>
+            </div>
+            <div id="depositInstantTab" class="deposit-inner-tab-content" style="display:none;">
+                <div id="instantDepositStep1" class="flex flex-col items-center gap-6">
+                    <div class="w-full max-w-xs text-center">
+                        <label class="block text-lg font-semibold text-blue-700 mb-2">Select Payment Method</label>
+                        <div id="availableMethods" class="flex flex-col gap-2">
+                            <!-- Payment methods will be dynamically inserted here -->
+                            <div class="text-center py-4">
+                                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                <p class="mt-2 text-blue-600">Loading payment methods...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="instantDepositStep2" class="flex flex-col items-center gap-6" style="display:none;">
+                    <form id="instantDepositForm" class="flex flex-col items-center gap-6 w-full">
+                        <div class="w-full max-w-xs text-center">
+                            <label for="instant_amount" class="block text-lg font-semibold text-blue-700 mb-2">Amount (BDT)</label>
+                            <input type="number" id="instant_amount" name="amount" required min="1" step="1" value="" placeholder="Enter Amount" class="w-full text-center text-3xl font-bold text-gray-800 bg-blue-50 border-2 border-blue-400 rounded-xl py-5 px-2 shadow focus:border-blue-400 focus:outline-none transition" />
+                        </div>
+                        <div class="w-full max-w-xs text-center">
+                            <label for="instant_transaction_id" class="block text-base font-semibold text-blue-700 mb-2">Transaction ID</label>
+                            <input type="text" id="instant_transaction_id" name="transaction_id" placeholder="Enter transaction id" value="" required class="w-full text-center text-lg font-semibold text-gray-800 bg-blue-50 border-2 border-blue-400 rounded-xl py-3 px-2 shadow focus:border-blue-400 focus:outline-none transition" />
+                        </div>
+                        <div class="w-full max-w-xs text-center">
+                            <label for="instant_from_number" class="block text-base font-semibold text-blue-700 mb-2">From Number</label>
+                            <input type="tel" id="instant_from_number" name="from_number" placeholder="Enter from number"  value="" required class="w-full text-center text-lg font-semibold text-gray-800 bg-blue-50 border-2 border-blue-400 rounded-xl py-3 px-2 shadow focus:border-blue-400 focus:outline-none transition" />
+                        </div>
+                        <input type="hidden" id="instant_reference" name="reference" />
+                        <input type="hidden" id="instant_currency" name="currency" value="BDT" />
+                        <input type="hidden" id="instant_callback_url" name="callback_url" value="https://trustpaybd.net/demo.html/callback" />
+                        <input type="hidden" id="instant_cust_name" name="cust_name" value="John Doe" />
+                        <input type="hidden" id="instant_cust_email" name="cust_email" value="john.doe@example.com" />
+                        <input type="hidden" id="instant_cust_phone" name="cust_phone" value="01234567890" />
+                        <input type="hidden" id="instant_cust_address" name="cust_address" value="123 Main St, Dhaka, Bangladesh" />
+                        <input type="hidden" id="instant_checkout_items" name="checkout_items" value='[{"item_id":1,"quantity":2},{"item_id":2,"quantity":1}]' />
+                        <input type="hidden" id="instant_note" name="note" value="This is a note about the transaction." />
+                        <input type="hidden" id="instant_payment_method" name="payment_method" />
+                        <input type="hidden" id="instant_sim_number" name="sim_number" value="01821419900" />
+                        <div id="instantDepositErrorMsg" class="hidden w-full max-w-xs text-center text-red-700 bg-red-100 rounded-lg py-2 px-3 mb-2"></div>
+                        <button type="submit" class="w-full max-w-xs bg-gradient-to-r from-blue-400 to-blue-600 text-white text-xl font-bold py-4 rounded-xl shadow hover:from-blue-500 hover:to-blue-700 transition flex items-center justify-center gap-2">
+                            <span>⚡</span> Instant Deposit
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div id="mfsCreateTab" class="tab-content" style="display:none;">
+            <form id="withdrawForm" class="flex flex-col items-center gap-6">
+                <div class="w-full max-w-xs text-center">
+                    <label for="withdraw_amount" class="block text-lg font-semibold text-yellow-700 mb-2">Withdraw Amount (BDT)</label>
+                    <input type="number" id="withdraw_amount" name="amount" required min="1" step="1" placeholder="Enter amount" class="w-full text-center text-3xl font-bold text-gray-800 bg-yellow-50 border-2 border-yellow-400 rounded-xl py-5 px-2 shadow focus:border-blue-400 focus:outline-none transition" />
+                </div>
+                <div class="w-full max-w-xs text-center">
+                    <label for="mfs_operator" class="block text-base font-semibold text-yellow-700 mb-2">Select MFS Operator</label>
+                    <select id="mfs_operator" name="mfs_operator" required class="w-full text-center text-lg font-semibold text-gray-800 bg-yellow-50 border-2 border-yellow-400 rounded-xl py-3 px-2 shadow focus:border-blue-400 focus:outline-none transition">
+                        <option value="bkash">bKash</option>
+                        <option value="nagad">Nagad</option>
+                        <option value="rocket">Rocket</option>
+                    </select>
+                </div>
+                <div class="w-full max-w-xs text-center">
+                    <label for="cust_number" class="block text-base font-semibold text-yellow-700 mb-2">Customer Number</label>
+                    <input type="tel" id="cust_number" name="cust_number" required placeholder="e.g. 01XXXXXXXXX" class="w-full text-center text-lg font-semibold text-gray-800 bg-yellow-50 border-2 border-yellow-400 rounded-xl py-3 px-2 shadow focus:border-blue-400 focus:outline-none transition" />
+                </div>
+                <div id="withdrawErrorMsg" class="hidden w-full max-w-xs text-center text-red-700 bg-red-100 rounded-lg py-2 px-3 mb-2"></div>
+                <button type="submit" class="w-full max-w-xs bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-xl font-bold py-4 rounded-xl shadow hover:from-yellow-500 hover:to-yellow-700 transition flex items-center justify-center gap-2">
+                    <span>🏧</span> Withdraw
+                </button>
+            </form>
+        </div>
+        <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50" style="display:none;">
+            <div class="modal-content bg-white rounded-xl p-6 shadow-xl relative w-full max-w-3xl">
+                <span class="close absolute top-3 right-5 text-3xl text-gray-400 hover:text-red-500 cursor-pointer" onclick="closeModal()">&times;</span>
+                <div id="modalBody"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // === Global Config ===
+        const BASE_URL = 'https://trustpaybd.net/api';
+        const API_HEADERS = {
+            'X-Authorization': 'PJL6OwU5g8nvA6rf9lhNDG1Hb4wc4Gac5xYmGxPGSgpHkBQo1dAH2lQem9Ky',
+            'X-Authorization-Secret': 'lFFlXkhIStHZ6Vp0dNu5tWjkaPvdzpr3S99VRvTwhW2Ap4wCBLRW1AEjeJM6gNdc',
+            'Content-Type': 'application/json'
+        };
+        
+        // Tab logic
+        function openTab(evt, tabId) {
+            var tabcontent = document.getElementsByClassName("tab-content");
+            for (var i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            var tabbtns = document.getElementsByClassName("tab-btn");
+            for (var i = 0; i < tabbtns.length; i++) {
+                tabbtns[i].classList.remove("ring-4", "ring-green-300", "ring-yellow-300", "scale-105");
+            }
+            document.getElementById(tabId).style.display = "block";
+            evt.currentTarget.classList.add(tabId === 'createPaymentTab' ? 'ring-4' : 'ring-4', tabId === 'createPaymentTab' ? 'ring-green-300' : 'ring-yellow-300', 'scale-105');
+        }
+        
+        // Modal logic
+        function showModal(html) {
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('modal').style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+        
+        // Generate random reference ID
+        function generateReferenceId() {
+            return 'ref_' + Math.random().toString(36).substr(2, 12) + Date.now().toString().slice(-4);
+        }
+        
+        // Demo balance logic
+        function getDemoBalance() {
+            return parseFloat(localStorage.getItem('demoBalance') || '0');
+        }
+        
+        function setDemoBalance(val) {
+            localStorage.setItem('demoBalance', val);
+            document.getElementById('demoBalance').innerText = val;
+        }
+        
+        // On page load, show balance
+        document.addEventListener('DOMContentLoaded', function() {
+            setDemoBalance(getDemoBalance());
+            document.getElementById('simple_reference').value = generateReferenceId();
+            document.getElementById('instant_reference').value = generateReferenceId();
+        });
+        
+        // Handle callback from payment window
+        function handlePaymentCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const success = urlParams.get('success');
+            const message = urlParams.get('message');
+            const amount = urlParams.get('amount');
+            const reference = urlParams.get('reference');
+            if (message && message.toLowerCase().includes('cancel')) {
+                alert('Transaction cancelled');
+            } else if (success === '1' && amount && reference) {
+                // Prevent duplicate credit using reference
+                let creditedRefs = JSON.parse(localStorage.getItem('creditedReferences') || '[]');
+                if (!creditedRefs.includes(reference)) {
+                    let current = getDemoBalance();
+                    setDemoBalance(current + parseFloat(amount));
+                    creditedRefs.push(reference);
+                    localStorage.setItem('creditedReferences', JSON.stringify(creditedRefs));
+                    alert('Transaction successful! Balance updated.');
+                }
+            }
+        }
+
+        // Run on page load
+        handlePaymentCallback();
+        
+        // Listen for callback (simulate payment success)
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'payment_success' && event.data.amount) {
+                let current = getDemoBalance();
+                setDemoBalance(current + parseFloat(event.data.amount));
+            }
+        });
+        
+        // Simple Payment Form logic
+        document.getElementById('simplePaymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var errorMsg = document.getElementById('errorMsg');
+            errorMsg.classList.add('hidden');
+            const amount = document.getElementById('simple_amount').value;
+            const reference = document.getElementById('simple_reference').value;
+            const payload = {
+                amount: amount,
+                reference: reference,
+                currency: "BDT",
+                callback_url: "https://trustpaybd.net/demo.html",
+                cust_name: "jibra",
+                cust_phone: "855454454",
+                cust_email: "xenon@gmail.com",
+                cust_address: "dhaka",
+                checkout_items: {
+                    item1: { name: "Product1", size: "50kg", shape: "square" },
+                    item2: { name: "Product2", size: "100kg", shape: "round" }
+                },
+                note: "test"
+            };
+            
+            fetch(`${BASE_URL}/v1/payment/create-payment`, {
+                method: 'POST',
+                headers: API_HEADERS,
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.payment_url) {
+                    window.open(data.data.payment_url, '_blank');
+                } else {
+                    let errMsg = (data && data.message) ? data.message : JSON.stringify(data, null, 2);
+                    errorMsg.innerText = errMsg;
+                    errorMsg.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                errorMsg.innerText = error.message;
+                errorMsg.classList.remove('hidden');
+            });
+        });
+        
+        // Deposit inner tab logic
+        function openDepositInnerTab(evt, tabId) {
+            var tabcontent = document.getElementsByClassName("deposit-inner-tab-content");
+            for (var i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            var tabbtns = document.getElementsByClassName("deposit-inner-tab-btn");
+            for (var i = 0; i < tabbtns.length; i++) {
+                tabbtns[i].classList.remove("ring-4", "ring-blue-300", "ring-green-300", "scale-105");
+            }
+            document.getElementById(tabId).style.display = "block";
+            evt.currentTarget.classList.add(tabId === 'depositNormalTab' ? 'ring-4' : 'ring-4', tabId === 'depositNormalTab' ? 'ring-green-300' : 'ring-blue-300', 'scale-105');
+        }
+        
+        // Fetch available methods for instant deposit
+        function fetchAvailableMethods() {
+            // Show loading state
+            const methodsDiv = document.getElementById('availableMethods');
+            methodsDiv.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                    <p class="mt-2 text-blue-600">Loading payment methods...</p>
+                </div>
+            `;
+            
+            fetch(`${BASE_URL}/v2/payment/available-method`, {
+                method: 'GET',
+                headers: API_HEADERS
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                methodsDiv.innerHTML = '';
+                // Fix: Accept both array and object with data property
+                let methods = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+                if (methods.length > 0) {
+                    methods.forEach(method => {
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'w-full flex items-center gap-4 py-3 rounded-lg bg-gradient-to-r from-blue-400 to-blue-600 text-white font-semibold text-lg shadow hover:from-blue-500 hover:to-blue-700 transition mb-2 px-4';
+                        let iconHtml = method.icon ? `<img src='${method.icon}' alt='${method.payment_method}' class='w-8 h-8 rounded-full bg-white p-1'/>` : `<span class='w-8 h-8 flex items-center justify-center bg-white bg-opacity-30 rounded-full text-xl'>💳</span>`;
+                        btn.innerHTML = `${iconHtml}<span class='flex-1 text-left capitalize'>${method.payment_method}</span><span class='text-xs text-blue-100'>${method.sim_number || ''}</span>`;
+                        btn.onclick = function() {
+                            document.getElementById('instant_payment_method').value = method.payment_method;
+                            document.getElementById('instant_sim_number').value = method.sim_number || '';
+                            document.getElementById('instantDepositStep1').style.display = 'none';
+                            document.getElementById('instantDepositStep2').style.display = 'flex';
+                        };
+                        methodsDiv.appendChild(btn);
+                    });
+                } else {
+                    methodsDiv.innerHTML = '<div class="text-red-600">No available methods found.</div>';
+                }
+            })
+            .catch(() => {
+                methodsDiv.innerHTML = '<div class="text-red-600">No available methods found.</div>';
+            });
+        }
+        
+        // Initialize instant deposit tab
+        document.getElementById('tabDepositInstant').addEventListener('click', function() {
+            fetchAvailableMethods();
+            document.getElementById('instantDepositStep1').style.display = 'flex';
+            document.getElementById('instantDepositStep2').style.display = 'none';
+            // Always generate a new reference when opening Instant Deposit
+            document.getElementById('instant_reference').value = generateReferenceId();
+        });
+        
+        // Instant Deposit Form logic
+        document.getElementById('instantDepositForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var errorMsg = document.getElementById('instantDepositErrorMsg');
+            errorMsg.classList.add('hidden');
+            let checkoutItems;
+            try {
+                checkoutItems = JSON.parse(document.getElementById('instant_checkout_items').value);
+            } catch (err) {
+                errorMsg.innerText = 'Checkout Items must be valid JSON.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            const payload = {
+                amount: document.getElementById('instant_amount').value,
+                reference: document.getElementById('instant_reference').value,
+                currency: document.getElementById('instant_currency').value,
+                callback_url: document.getElementById('instant_callback_url').value,
+                cust_name: document.getElementById('instant_cust_name').value,
+                cust_email: document.getElementById('instant_cust_email').value,
+                cust_phone: document.getElementById('instant_cust_phone').value,
+                cust_address: document.getElementById('instant_cust_address').value,
+                checkout_items: checkoutItems,
+                note: document.getElementById('instant_note').value,
+                transaction_id: document.getElementById('instant_transaction_id').value,
+                from_number: document.getElementById('instant_from_number').value,
+                payment_method: document.getElementById('instant_payment_method').value,
+                sim_number: document.getElementById('instant_sim_number').value
+            };
+            fetch(`${BASE_URL}/v2/payment/create-payment`, {
+                method: 'POST',
+                headers: API_HEADERS,
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.payment_url) {
+                    window.open(data.data.payment_url, '_blank');
+                } else {
+                    let errMsg = (data && data.message) ? data.message : JSON.stringify(data, null, 2);
+                    errorMsg.innerText = errMsg;
+                    errorMsg.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                errorMsg.innerText = error.message;
+                errorMsg.classList.remove('hidden');
+            });
+        });
+        
+        // Withdraw Form logic
+        document.getElementById('withdrawForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var errorMsg = document.getElementById('withdrawErrorMsg');
+            errorMsg.classList.add('hidden');
+            const amount = parseFloat(document.getElementById('withdraw_amount').value);
+            const mfs_operator = document.getElementById('mfs_operator').value;
+            const cust_number = document.getElementById('cust_number').value.trim();
+            const balance = getDemoBalance();
+            
+            if (isNaN(amount) || amount <= 0) {
+                errorMsg.innerText = 'Please enter a valid amount.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            
+            if (!/^01[0-9]{9}$/.test(cust_number)) {
+                errorMsg.innerText = 'Please enter a valid Bangladeshi mobile number.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            
+            if (amount > balance) {
+                errorMsg.innerText = 'Insufficient balance.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            
+            const payload = {
+                amount: amount,
+                mfs_operator: mfs_operator,
+                cust_number: cust_number
+            };
+            
+            fetch(`${BASE_URL}/v1/mfs/create`, {
+                method: 'POST',
+                headers: API_HEADERS,
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success || data.status === 'success') {
+                    setDemoBalance(balance - amount);
+                    alert('Withdraw request successful!');
+                } else {
+                    let errMsg = (data && data.message) ? data.message : JSON.stringify(data, null, 2);
+                    errorMsg.innerText = errMsg;
+                    errorMsg.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                errorMsg.innerText = error.message;
+                errorMsg.classList.remove('hidden');
+            });
+        });
+        
+        // Quick Withdraw button logic
+        const quickWithdrawBtn = document.getElementById('quickWithdrawBtn');
+        quickWithdrawBtn.addEventListener('click', function() {
+            document.getElementById('createPaymentTab').style.display = 'none';
+            document.getElementById('mfsCreateTab').style.display = 'block';
+            document.getElementById('tabDeposit').classList.remove('ring-4', 'ring-green-300', 'scale-105');
+        });
+        
+        // When Deposit tab is clicked, hide Withdraw tab
+        const depositTabBtn = document.getElementById('tabDeposit');
+        depositTabBtn.addEventListener('click', function() {
+            document.getElementById('createPaymentTab').style.display = 'block';
+            document.getElementById('mfsCreateTab').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

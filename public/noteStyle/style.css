@@ -1,0 +1,31 @@
+.note-container {
+               width: 100%;
+               /* Set this to the desired width of the container */
+               overflow: hidden;
+               white-space: nowrap;
+               position: relative;
+}
+
+.note-content {
+               display: inline-block;
+               padding-left: 100%;
+               /* Start the text outside the visible area */
+               position: absolute;
+               left: 0;
+               transition: transform 0s linear;
+}
+
+.note-container:hover .note-content {
+               animation: scrollText 10s linear infinite;
+}
+
+/* Keyframes for the scrolling animation */
+@keyframes scrollText {
+               from {
+                              transform: translateX(100%);
+               }
+
+               to {
+                              transform: translateX(-100%);
+               }
+}

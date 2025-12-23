@@ -1,0 +1,148 @@
+<table id="req_table" class="table table-hover mb-0 text-center align-middle table-bordered">
+    <thead>
+        <tr>
+            <th scope="col" class="text-center">#</th>
+            {{-- <th scope="col" class="text-center">Sender</th> --}}
+            {{-- <th scope="col">Customer Name</th> --}}
+            <th scope="col">ReqTime <br> Date</th>
+            {{-- <th scope="col">Date</th> --}}
+            <th scope="col">MFS</th>
+            <th scope="col">Number</th>
+            <th scope="col">Oldbal</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Lastbal</th>
+            <th scope="col">Trxid</th>
+            <th scope="col">Type</th>
+            {{-- <th scope="col">Note</th> --}}
+            <th scope="col">Status</th>
+            <th scope="col"> Route</th>
+            @if ($user_type == 'agent')
+                <th scope="col">Action</th>
+            @endif
+        </tr>
+    </thead>
+
+    @php
+        $total = 0;
+    @endphp
+
+    <tbody>
+        @foreach ($data as $index => $row)
+            @php
+                $total += $row->amount;
+            @endphp
+
+            <tr id="{{ $row->id }}">
+                <td>{{ $index + 1 }}</td>
+                {{-- <td>{{ CustomerInfo($row->customer_id)->customer_name }}</td> --}}
+                {{-- <td>{{ $row->id }}</td> --}}
+                {{-- <td>{{ $row->merchant->username }}</td> --}}
+
+
+                <td>{{ bdtime($row->created_at) }}
+                    <p class="text-success font-weight-bold">
+                        <?php echo \Carbon\Carbon::createFromTimeStamp(strtotime($row->created_at))->diffForHumans(); ?>
+                    </p> <br>
+                    {{ $row->updated_at }}
+                    <p class="text-success font-weight-bold">
+                        <?php echo \Carbon\Carbon::createFromTimeStamp(strtotime($row->updated_at))->diffForHumans(); ?>
+                    </p>
+                </td>
+                {{-- <td>
+
+                </td> --}}
+                <td style="text-transform: capitalize;">{{ $row->mfs }}</td>
+                <td>{{ $row->number }}</td>
+                <td>{{ money($row->old_balance) }}</td>
+                <td>{{ money($row->amount) }}</td>
+                <td>{{ money($row->new_balance) }}</td>
+                <td style="width: 150px; word-wrap: break-word; white-space: normal;">
+                    {{ $row->get_trxid }}
+                </td>
+                <td>{{ $row->type }}</td>
+                {{-- <td>{{ $row->get_trxid }}</td> --}}
+                @if ($row->status == 2)
+                    <td><span class='badge badge-pill bg-success'>Success</span></td>
+                @elseif($row->status == 1)
+                    <td><span class='badge badge-pill bg-info text-white'>Waiting</span></td>
+                @elseif($row->status == 4)
+                    <td><span class='badge badge-pill bg-danger text-white'>Rejected</span></td>
+                @elseif($row->status == 3)
+                    <td><span class='badge badge-pill bg-success text-white'>Approved</span></td>
+                @elseif($row->status == 5)
+                    <td><span class='badge badge-pill  text-white' style="background-color: blue">Processing</span></td>
+                @elseif($row->status == 6)
+                    <td><span class='badge badge-pill bg-green text-white'
+                            style="background-color: chocolate">Failed</span></td>
+                @else
+                    <td><span class='badge badge-pill bg-warning text-white'> Pending </span></td>
+                @endif
+                <td>
+                    @if ($row->agent_id)
+                        <br><span class='badge badge-pill'
+                            style="color: #e6be96; background-color: blue">{{ $row->user->fullname }}</span>
+                        <br><span class='badge badge-pill'
+                            style="color: #e6be96; background-color: blue">{{ getSimInfo($row->modem_id) }}</span>
+                    @endif
+
+                </td>
+
+                @if ($user_type == 'agent')
+                    @if ($row->status == 0)
+                        <td>
+                            @php
+                                $user = Auth::guard('web')->user();
+                                $getBalance = findAgentBalance($user->id);
+
+                            @endphp
+
+                            @if ($getBalance['mainBalance'] >= $row->amount)
+                                <a href="#" class="acceptRequest btn btn-sm btn-success"
+                                    data-title="{{ $row->mfs }} -- {{ $row->number }}"
+                                    id="{{ $row->id }}">Accept</a>
+                            @else
+                                <a href="#" class="warningRequest btn btn-sm btn-success"
+                                    onclick="return confirm('Your balance is insufficent')">Accept</a>
+                            @endif
+                        </td>
+                    @else
+                        <td>
+                            @if ($row->status == 2 || $row->status == 3 || $row->status == 4)
+                            @else
+                                <a href="#" class="btn btn-sm btn-success showRequestConfirmModal"
+                                    data-title="{{ $row->mfs }} -- {{ $row->number }}"
+                                    id="{{ $row->id }}"><i class="bx bx-check-double" aria-hidden="true"></i></a>
+
+
+                                <a href="#" class="rejectBalance btn btn-sm btn-outline-danger"
+                                    id="{{ $row->id }}" data-id={{ $row->id }}><i class="lni lni-cross-circle"
+                                        aria-hidden="true"></i></a>
+                            @endif
+
+                            @if ($row->status == 5 || $row->status == 6)
+                                <a class="btn btn-sm btn-outline-info"
+                                    onclick="return confirm('Are you sure to resend this request?')"
+                                    href="{{ route('agent.resend_req', ['id' => $row->id]) }}" data-toggle="tooltip"
+                                    data-placement="right" title="Resend"><i class="lni lni-angle-double-right"
+                                        aria-hidden="true"></i></a>
+                            @endif
+                        </td>
+                    @endif
+                @endif
+            </tr>
+        @endforeach
+
+        @if ($data->isEmpty())
+            <tr>
+                <td colspan="15" style="text-align: center;padding: 50px;font-size: 18px;">No Record Found.</td>
+            </tr>
+        @else
+            <tr>
+                <th colspan="5">Total</th>
+                <th class="text-center"><?php echo number_format($total, 2); ?></th>
+                <th>-</th>
+            </tr>
+        @endif
+    </tbody>
+</table>
+
