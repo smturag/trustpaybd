@@ -57,7 +57,7 @@
             <!--        <?php echo \Carbon\Carbon::createFromTimeStamp(strtotime($row->sms_time))->diffForHumans() ?>-->
             <!--    </p>-->
             <!--</td>-->
-            <td style="text-transform: capitalize;">{{ str_replace("ng", "", $row->type) }}</td>
+            <td style="text-transform: capitalize;">{{ $row->type }}</td>
             <td>{{ $row->mobile }}</td>
             <!--<td>{{ money($row->oldbal) }}</td>-->
             <td>{{ money($row->amount) }}</td>

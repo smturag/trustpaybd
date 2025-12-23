@@ -105,19 +105,26 @@ class BmToPaymentCheck extends Command
                 //     $mekeMethod = 'upay';
                 // }
 
-                $type = strtolower($item->bm_type);
-
-                if ($type == 'bkcashout') {
-                    $mekeMethod = 'bkash';
-                } elseif ($type == 'ngcashout') {
-                    $mekeMethod = 'nagad';
-                } elseif ($type == 'bkrc') {
-                    $mekeMethod = 'bkash';
-                } elseif ($type == 'rccashout') {
-                    $mekeMethod = 'rocket';
-                } elseif ($type == 'upcashout') {
-                    $mekeMethod = 'upay';
-                }
+                $type = strtolower((string) $item->bm_type);
+                $typeMap = [
+                    'bkcashout' => 'bkash',
+                    'bkcashin' => 'bkash',
+                    'bkb2b' => 'bkash',
+                    'bkrc' => 'bkash',
+                    'bkpayment' => 'bkash',
+                    'ngcashout' => 'nagad',
+                    'ngcashin' => 'nagad',
+                    'ngb2btr' => 'nagad',
+                    'ngb2brc' => 'nagad',
+                    'ngpayment' => 'nagad',
+                    'ngrc' => 'nagad',
+                    'rccashout' => 'rocket',
+                    'rcrc' => 'rocket',
+                    'rcpayment' => 'rocket',
+                    'upcashout' => 'upay',
+                    'uprc' => 'upay',
+                ];
+                $mekeMethod = $typeMap[$type] ?? null;
 
                 if (is_null($item->bm_status) || in_array($item->bm_status, $checkStatusArray)) {
                     $checkSuccessStatus = true;

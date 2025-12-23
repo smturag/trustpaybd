@@ -30,6 +30,7 @@ class ReactNativeModemController extends Controller
 
         $getoperator = $request->operator;
         $msg = $request->smsbody;
+        $msgNormalized = preg_replace('/\s+/', ' ', trim($msg));
         $sendcode = trim($request->sender);
         $sendcodeLower = strtolower($sendcode);
         $simid = $request->simid;
@@ -136,13 +137,13 @@ class ReactNativeModemController extends Controller
             //     ->update(['up_time' => time()]);
         }
 
-        // if (empty($simnumber) || empty($sim_number)) {
-        //     return response()->json([
-        //         'message' => 'Sim number id empty',
-        //         'status_code' => 500,
-        //         'success' => false,
-        //     ]);
-        // }
+        if (empty($simnumber) || empty($sim_number)) {
+            return response()->json([
+                'message' => 'Sim number id empty',
+                'status_code' => 500,
+                'success' => false,
+            ]);
+        }
 
         //        else {
         //            $sim_number = 'testagentnumber';
@@ -480,19 +481,19 @@ class ReactNativeModemController extends Controller
             Payment Received. Amount: Tk 50.00 Customer: 01929952387 TxnID: 74HΝΕΚΟ8 Balance: Tk 247.78 20/10/2025 17:58
             */
 
-            if (str_contains($msg, 'Payment Received') && $sendcodeLower === 'nagad') {
+            if (str_contains($msgNormalized, 'Payment Received') && $sendcodeLower === 'nagad') {
                 $smsbodytype = 'ngPayment';
                 $baltype = 'plus';
                 $comm = 0;
 
                 // Extract using your helper (no \n)
-                $amount = floatval(str_replace(',', '', getStringBetweenForMassage($msg, 'Amount: Tk ', ' Customer:')));
-                $number = trim(getStringBetweenForMassage($msg, 'Customer: ', ' TxnID:'));
-                $trxid = trim(getStringBetweenForMassage($msg, 'TxnID: ', ' Balance:'));
-                $lastbal = floatval(str_replace(',', '', getStringBetweenForMassage($msg, 'Balance: Tk ', ' ')));
+                $amount = floatval(str_replace(',', '', getStringBetweenForMassage($msgNormalized, 'Amount: Tk ', ' Customer:')));
+                $number = trim(getStringBetweenForMassage($msgNormalized, 'Customer: ', ' TxnID:'));
+                $trxid = trim(getStringBetweenForMassage($msgNormalized, 'TxnID: ', ' Balance:'));
+                $lastbal = floatval(str_replace(',', '', getStringBetweenForMassage($msgNormalized, 'Balance: Tk ', ' ')));
 
                 // Extract date & time (last portion)
-                preg_match('/(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2})/', $msg, $dateMatch);
+                preg_match('/(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2})/', $msgNormalized, $dateMatch);
                 $date = $dateMatch[1] ?? null;
                 $sms_date = $date ? Carbon::createFromFormat('d/m/Y H:i', $date)->format('Y-m-d H:i') : null;
             }
@@ -501,22 +502,26 @@ class ReactNativeModemController extends Controller
              *Money Received. Amount: Tk 10.00 Sender: 01929952387 Ref: N/A TxnID: 74HNFMWH Balance: Tk 334.49 20/10/2025 18:03
              */
 
-            if (str_contains($msg, 'Money Received') && $sendcodeLower === 'nagad') {
+
+
+            if (str_contains($msgNormalized, 'Money Received') && $sendcodeLower === 'nagad') {
                 $smsbodytype = 'ngRC';
                 $baltype = 'plus';
                 $comm = 0;
 
                 // Use your existing helper function
-                $amount = floatval(str_replace(',', '', getStringBetweenForMassage($msg, 'Amount: Tk ', ' Sender:')));
-                $number = trim(getStringBetweenForMassage($msg, 'Sender: ', ' Ref:'));
-                $ref = trim(getStringBetweenForMassage($msg, 'Ref: ', ' TxnID:'));
-                $trxid = trim(getStringBetweenForMassage($msg, 'TxnID: ', ' Balance:'));
-                $lastbal = floatval(str_replace(',', '', getStringBetweenForMassage($msg, 'Balance: Tk ', ' ')));
+                $amount = floatval(str_replace(',', '', getStringBetweenForMassage($msgNormalized, 'Amount: Tk ', ' Sender:')));
+                $number = trim(getStringBetweenForMassage($msgNormalized, 'Sender: ', ' Ref:'));
+                $ref = trim(getStringBetweenForMassage($msgNormalized, 'Ref: ', ' TxnID:'));
+                $trxid = trim(getStringBetweenForMassage($msgNormalized, 'TxnID: ', ' Balance:'));
+                $lastbal = floatval(str_replace(',', '', getStringBetweenForMassage($msgNormalized, 'Balance: Tk ', ' ')));
 
                 // Extract date/time (last portion)
-                preg_match('/(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2})/', $msg, $dateMatch);
+                preg_match('/(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2})/', $msgNormalized, $dateMatch);
                 $date = $dateMatch[1] ?? null;
                 $sms_date = $date ? Carbon::createFromFormat('d/m/Y H:i', $date)->format('Y-m-d H:i') : null;
+
+
             }
 
             /*
@@ -540,6 +545,10 @@ class ReactNativeModemController extends Controller
                 $sms_date = $date ? Carbon::createFromFormat('d/m/Y H:i', $date)->format('Y-m-d H:i') : null;
             }
 
+
+            if ($sendcodeLower === 'nagad' && strtolower((string) $smsbodytype) === 'rc') {
+                $smsbodytype = 'ngRC';
+            }
 
             $bmcount = BalanceManager::where('sms_body', $msg)->count();
 
