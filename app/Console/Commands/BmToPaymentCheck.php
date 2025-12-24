@@ -107,24 +107,20 @@ class BmToPaymentCheck extends Command
 
                 $type = strtolower((string) $item->bm_type);
                 $typeMap = [
-                    'bkcashout' => 'bkash',
-                    'bkcashin' => 'bkash',
-                    'bkb2b' => 'bkash',
-                    'bkrc' => 'bkash',
-                    'bkpayment' => 'bkash',
-                    'ngcashout' => 'nagad',
-                    'ngcashin' => 'nagad',
-                    'ngb2btr' => 'nagad',
-                    'ngb2brc' => 'nagad',
-                    'ngpayment' => 'nagad',
-                    'ngrc' => 'nagad',
-                    'rccashout' => 'rocket',
-                    'rcrc' => 'rocket',
-                    'rcpayment' => 'rocket',
-                    'upcashout' => 'upay',
-                    'uprc' => 'upay',
+                    'bkcashout' => ['method' => 'bkash', 'payment_type' => 'P2A'],
+                    'bkrc' => ['method' => 'bkash', 'payment_type' => 'P2P'],
+                    'bkpayment' => ['method' => 'bkash', 'payment_type' => 'P2C'],
+                    'ngcashout' => ['method' => 'nagad', 'payment_type' => 'P2A'],
+                    'ngpayment' => ['method' => 'nagad', 'payment_type' => 'P2C'],
+                    'ngrc' => ['method' => 'nagad', 'payment_type' => 'P2P'],
+                    'rccashout' => ['method' => 'rocket', 'payment_type' => 'P2A'],
+                    'rcrc' => ['method' => 'rocket', 'payment_type' => 'P2P'],
+                    'rcpayment' => ['method' => 'rocket', 'payment_type' => 'P2C'],
+                    'upcashout' => ['method' => 'upay', 'payment_type' => 'P2A'],
+                    'uprc' => ['method' => 'upay', 'payment_type' => 'P2A'],
                 ];
-                $mekeMethod = $typeMap[$type] ?? null;
+                $mekeMethod = $typeMap[$type]['method'] ?? null;
+                $paymentType = $typeMap[$type]['payment_type'] ?? null;
 
                 if (is_null($item->bm_status) || in_array($item->bm_status, $checkStatusArray)) {
                     $checkSuccessStatus = true;
@@ -156,6 +152,7 @@ class BmToPaymentCheck extends Command
                             'balance_updated' => 1,
                             'accepted_by' => 'Automatic',
                             'trxid' => $paymentTrxId,
+                            'payment_type' => $paymentType,
                         ]);
 
                          $payment = DB::table('payment_requests')

@@ -90,7 +90,7 @@
                     </span></td>
 
                 {{-- <td class="text-center">{{ $row->merchant->fullname }}</td> --}}
-                <td class="text-center"> {{ $subMerchantName }} <br> {{ $row->payment_method }}, {{ $row->sim_id }}
+                <td class="text-center"> {{ $subMerchantName }} <br> {{ $row->payment_method }}, {{ $row->sim_id }} <br> {{ $row->payment_type }}
                 </td>
                 <!--<td class="text-center">{{ fake()->randomElement(['cashin', 'cashout', 'send money']) }}</td>-->
                 {{-- <td class="text-center">{{ $make_method }}</td> --}}
