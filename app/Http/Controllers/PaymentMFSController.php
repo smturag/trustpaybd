@@ -273,10 +273,33 @@ class PaymentMFSController extends Controller
             // This means balance not updated, need to do the tasks
             $balanceManagerQuery = DB::table('balance_managers')->where('sim', $data['sim_id'])->where('trxid', $data['trxid'])->where('amount', $data['amount']);
 
-            if ($data['payment_method'] == 'bkash') {
-                $balanceManagerQuery->where('type', 'bkcashout');
-            } elseif ($data['payment_method'] == 'nagad') {
-                $balanceManagerQuery->where('type', 'ngcashout');
+            $balanceManagerTypeMap = [
+                'bkash' => [
+                    'p2a' => ['bkcashout'],
+                    'p2p' => ['bkrc'],
+                    'p2c' => ['bkpayment'],
+                ],
+                'nagad' => [
+                    'p2a' => ['ngcashout'],
+                    'p2p' => ['ngrc'],
+                    'p2c' => ['ngpayment'],
+                ],
+                'rocket' => [
+                    'p2a' => ['rccashout'],
+                    'p2p' => ['rcrc'],
+                    'p2c' => ['rcpayment'],
+                ],
+                'upay' => [
+                    'p2a' => ['upcashout', 'uprc'],
+                ],
+            ];
+
+            $paymentMethod = $data['payment_method'] ?? null;
+            $paymentType = $data['type'] ?? null;
+            $normalizedPaymentType = is_string($paymentType) ? strtolower($paymentType) : $paymentType;
+
+            if ($paymentMethod && $normalizedPaymentType && isset($balanceManagerTypeMap[$paymentMethod][$normalizedPaymentType])) {
+                $balanceManagerQuery->whereIn('type', $balanceManagerTypeMap[$paymentMethod][$normalizedPaymentType]);
             }
 
             $balanceManager = $balanceManagerQuery->first();

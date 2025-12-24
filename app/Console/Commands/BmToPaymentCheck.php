@@ -70,7 +70,7 @@ class BmToPaymentCheck extends Command
         $query = DB::table('payment_requests as pr')
             ->join('balance_managers as bm', 'pr.payment_method_trx', '=', 'bm.trxid')
             ->where(function ($query) {
-                $query->whereIn('bm.status', [20, 22, 33, 55, 77])
+                $query->where('bm.status', '!=', 66)
                     ->orWhereNull('bm.status'); // ✅ include null status
             })
             ->whereNotNull('pr.payment_method')
@@ -90,7 +90,6 @@ class BmToPaymentCheck extends Command
             foreach ($results as $item) {
                 $paymentTrxId = generateInvoiceNumber(6);
                 $mekeMethod = null;
-                $checkStatusArray = [20, 22,33,55,77];
                 $checkSuccessStatus = false;
 
                 // if ($item->bm_type == 'bkcashout') {
@@ -122,7 +121,7 @@ class BmToPaymentCheck extends Command
                 $mekeMethod = $typeMap[$type]['method'] ?? null;
                 $paymentType = $typeMap[$type]['payment_type'] ?? null;
 
-                if (is_null($item->bm_status) || in_array($item->bm_status, $checkStatusArray)) {
+                if (is_null($item->bm_status) || (int) $item->bm_status !== 66) {
                     $checkSuccessStatus = true;
                 }
 
