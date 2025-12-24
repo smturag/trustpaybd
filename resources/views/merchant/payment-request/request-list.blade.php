@@ -18,6 +18,11 @@
         <div class="col-xl-12 mx-auto">
             <div class="header d-flex align-items-center mb-3">
                 <h6 class="mb-0 text-uppercase ps-3">Payment Request List</h6>
+                <div class="ms-auto d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary export-btn" data-format="csv">CSV</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary export-btn" data-format="excel">Excel</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary export-btn" data-format="pdf">PDF</button>
+                </div>
                 {{-- <a class="ms-auto btn btn-sm btn-primary" href="{{ route('userAdd') }}">
                     <i class="bx bx-plus mr-1"></i> New Payment Request
                 </a> --}}
@@ -309,6 +314,14 @@
                     $btn.prop('disabled', false).html("<span class='fa fa-search'></span> {{ translate('Search') }}");
                 }
             });
+        });
+
+        $('.export-btn').on('click', function () {
+            var format = $(this).data('format');
+            var formData = $('#search-form').serialize();
+            var baseUrl = "{{ route('merchant.payment-request.export') }}";
+            var url = baseUrl + (formData ? ('?' + formData + '&') : '?') + 'format=' + format;
+            window.location.href = url;
         });
     });
     </script>

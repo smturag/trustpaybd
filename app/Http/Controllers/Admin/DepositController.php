@@ -24,7 +24,7 @@ class DepositController extends Controller
         // If it's an AJAX request (DataTables)
         if ($request->ajax()) {
             // Only select needed columns
-            $query = PaymentRequest::select(['id', 'merchant_id', 'sub_merchant', 'customer_id', 'payment_method', 'sim_id', 'payment_method_trx', 'cust_name', 'cust_phone', 'status', 'reference', 'payment_type', 'note', 'reject_msg', 'created_at', 'updated_at', 'accepted_by', 'from_number', 'amount'])
+            $query = PaymentRequest::select(['id', 'merchant_id', 'sub_merchant', 'customer_id', 'payment_method', 'sim_id', 'payment_method_trx', 'cust_name', 'cust_phone', 'status', 'reference', 'payment_type', 'note', 'reject_msg', 'created_at', 'updated_at', 'accepted_by', 'from_number', 'amount', 'merchant_fee', 'merchant_commission', 'sub_merchant_fee', 'sub_merchant_commission'])
                 ->with(['merchant:id,fullname', 'subMerchant:id,fullname', 'customer:id,customer_name', 'balanceManager:trxid,mobile', 'sim:sim_id,type'])
                 ->orderBy('created_at', 'desc'); // latest first
 
@@ -152,6 +152,16 @@ class DepositController extends Controller
 
                 ->addColumn('amount', function ($row) {
                     return number_format($row->amount, 2);
+                })
+
+                ->addColumn('fee', function ($row) {
+                    $fee = $row->sub_merchant ? $row->sub_merchant_fee : $row->merchant_fee;
+                    return $fee !== null ? number_format($fee, 2) : '-';
+                })
+
+                ->addColumn('commission', function ($row) {
+                    $commission = $row->sub_merchant ? $row->sub_merchant_commission : $row->merchant_commission;
+                    return $commission !== null ? number_format($commission, 2) : '-';
                 })
 
                 ->addColumn('action', function ($row) {

@@ -49,8 +49,10 @@ Route::group(['prefix' => 'merchant'], function () {
         // Route::get('transaction', [MerchantController::class, 'TransactionContentIndex'])->name('merchant.transaction');
 
         Route::get('payment-request', [MerchantPaymentRequestController::class, 'index'])->name('merchant.payment-request');
+        Route::get('payment-request/export', [MerchantPaymentRequestController::class, 'exportPaymentRequests'])->name('merchant.payment-request.export');
         Route::get('developer', [DeveloperController::class, 'index'])->name('merchant.developer-index');
         Route::get('developer/api-key-generate', [DeveloperController::class, 'apiKeyGenerate'])->name('merchant.developer.api-key-generate');
+        Route::get('developer/service-rates', [DeveloperController::class, 'serviceRates'])->name('merchant.developer.service-rates');
         Route::get('payment-request/create', [MerchantPaymentRequestController::class, 'createNewDeposit'])->name('merchant.payment-request.create');
         Route::post('payment-request/store', [MerchantPaymentRequestController::class, 'depositRequestStore'])->name('merchant.deposit.store');
 
@@ -61,6 +63,7 @@ Route::group(['prefix' => 'merchant'], function () {
         // Route::get('developer/docs', [DeveloperController::class, 'developer_docs'])->name('merchant.developer.docs');
 
         route::get('service-request', [MerchantPaymentRequestController::class, 'service_request_index'])->name('merchant.service-request');
+        route::get('service-request/export', [MerchantPaymentRequestController::class, 'exportServiceRequests'])->name('merchant.service-request.export');
 
         Route::get('/withdraw-list', [MerchantController::class, 'withdraw_list'])->name('merchant.withdraw-list');
         Route::get('/withdraw', [MerchantController::class, 'withdraw'])->name('merchant.withdraw');

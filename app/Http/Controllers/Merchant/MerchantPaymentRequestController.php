@@ -11,89 +11,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Helpers\BalanceManagerConstant;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 use App\Models\Modem;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MerchantPaymentRequestController extends Controller
 {
     public function index(Request $request)
     {
-
-        $sort_by = $request->get('sortby');
-        $sort_by = $sort_by ?: 'id';
-
-        $sort_type = $request->get('sorttype');
-        $sort_type = $sort_type ?: 'desc';
-
-        $rows = $request->get('rows');
-        $rows = $rows ?: '10';
-
-        $status = $request->get('status');
-
-        $cust_name = $request->get('cust_name');
+        $sort_by = $request->get('sortby', 'id');
+        $sort_type = $request->get('sorttype', 'desc');
+        $rows = $request->get('rows', 10);
 
         $user = auth('merchant')->user();
+        $query_data = $this->buildPaymentRequestQuery($request, $user);
 
-        if($user->merchant_type == 'sub_merchant'){
-
-            $query_data = PaymentRequest::with(['agent'])
-            ->where('created_at', '!=', null)
-            ->where('sub_merchant', $user->id)
-            ->whereNotNull('payment_method')
-            ->orderBy($sort_by, $sort_type);
-
-        }else{
-            $query_data = PaymentRequest::with(['agent'])
-            ->where('created_at', '!=', null)
-            ->where('merchant_id', $user->id)
-            ->whereNotNull('payment_method')
-            ->orderBy($sort_by, $sort_type);
-
-        }
-
-
-
-        if (!empty($request->get('merchant_id'))) {
-            $query_data->where('merchant_id', '=', $request->get('merchant_id'));
-        }
-
-        if (!empty($request->get('trxid'))) {
-            $query_data->where('payment_method_trx', '=', $request->get('trxid'));
-        }
-
-        if ($cust_name) {
-            $query_data->where(function ($query) use ($cust_name) {
-                $query->where('cust_name', $cust_name)->orWhere('cust_phone', $cust_name);
-            });
-        }
-
-        if (!empty($request->get('reference'))) {
-            // $query_data->where('reference', 'LIKE', '%' . $request->get('reference') . '%')
-            //     ->orWhere('email', 'LIKE', '%' . $request->get('message') . '%')
-            //     ->orWhere('mobile', 'LIKE', '%' . $request->get('message') . '%');
-            $query_data->where('reference', '=', $request->get('reference'));
-        }
-
-        if ($status) {
-            if ($status == 1) {
-                $query_data->whereIn('status', [1, 2]);
-            } elseif ($status == 'pending') {
-                $query_data->where('status', 0);
-            } else {
-                $query_data->where('status', $status);
-            }
-        }
-
-        if (!empty($request->get('start_date')) && !empty($request->get('end_date'))) {
-            $query_data->where('created_at', '>=', $request->get('start_date'));
-            $query_data->where('created_at', '<=', $request->get('end_date'));
-        }
-
-        $data = $query_data->paginate($rows);
+        $data = $query_data->orderBy($sort_by, $sort_type)->paginate($rows);
 
         if ($request->ajax()) {
             return view('merchant.payment-request.data', compact('data'));
@@ -282,47 +220,7 @@ class MerchantPaymentRequestController extends Controller
     $rows = $request->get('rows', 10);
 
     $user = auth('merchant')->user();
-
-    $query_data = ServiceRequest::query();
-
-    if ($user->merchant_type == 'sub_merchant') {
-        $query_data->where('sub_merchant', $user->id);
-    } else {
-        $query_data->where('merchant_id', $user->id);
-    }
-
-    if ($request->filled('merchant_id')) {
-        $query_data->where('merchant_id', $request->merchant_id);
-    }
-
-    if ($request->filled('trxid')) {
-        $query_data->where('get_trxid', $request->trxid);
-    }
-
-    if ($request->filled('status')) {
-        switch ($request->status) {
-            case 'success': $query_data->whereIn('status', [2,3]); break;
-            case 'rejected': $query_data->where('status', 4); break;
-            case 'waiting': $query_data->where('status', 1); break;
-            case 'pending': $query_data->where('status', 0); break;
-            case 'processing': $query_data->where('status', 5); break;
-            case 'failed': $query_data->where('status', 6); break;
-        }
-    }
-
-    if ($request->filled('cNumber')) {
-        $query_data->where('number', $request->cNumber);
-    }
-
-    if ($request->filled('mfs')) {
-        $query_data->where('mfs', $request->mfs);
-    }
-
-    if ($request->filled(['from','to'])) {
-        $start_date = \Carbon\Carbon::parse($request->from)->startOfDay();
-        $end_date = \Carbon\Carbon::parse($request->to)->endOfDay();
-        $query_data->whereBetween('created_at', [$start_date, $end_date]);
-    }
+    $query_data = $this->buildServiceRequestQuery($request, $user);
 
     $data = $query_data->orderBy($sort_by, $sort_type)->paginate($rows);
 
@@ -335,6 +233,174 @@ class MerchantPaymentRequestController extends Controller
 
     return view('merchant.service-request.request-list', compact('data', 'merchants'));
 }
+
+    public function exportPaymentRequests(Request $request)
+    {
+        $format = strtolower($request->get('format', 'csv'));
+        $user = auth('merchant')->user();
+        $sort_by = $request->get('sortby', 'id');
+        $sort_type = $request->get('sorttype', 'desc');
+
+        $query_data = $this->buildPaymentRequestQuery($request, $user);
+        $data = $query_data->orderBy($sort_by, $sort_type)->get();
+
+        $bmMobiles = DB::table('balance_managers')
+            ->whereIn('trxid', $data->pluck('payment_method_trx')->filter()->all())
+            ->pluck('mobile', 'trxid');
+
+        $filename = 'payment-requests-' . now()->format('Ymd-His');
+
+        if ($format === 'pdf') {
+            if (!class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+                return redirect()->back()->with('alert', 'PDF export is not available. Please install barryvdh/laravel-dompdf.');
+            }
+
+            $pdf = Pdf::loadView('merchant.exports.payment_requests', [
+                'data' => $data,
+                'user' => $user,
+                'bmMobiles' => $bmMobiles,
+            ])->setPaper('a4', 'landscape');
+
+            return $pdf->download($filename . '.pdf');
+        }
+
+        if ($format === 'excel') {
+            return response()
+                ->view('merchant.exports.payment_requests', [
+                    'data' => $data,
+                    'user' => $user,
+                    'bmMobiles' => $bmMobiles,
+                ])
+                ->header('Content-Type', 'application/vnd.ms-excel')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '.xls"');
+        }
+
+        $headers = [
+            'From',
+            'Method',
+            'Payment Type',
+            'Amount',
+            'Fee',
+            'Commission',
+            'New Amount',
+            'TrxId',
+            'Reference',
+            'Note',
+            'Created At',
+            'Status',
+        ];
+
+        return response()->streamDownload(function () use ($data, $user, $headers, $bmMobiles) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $headers);
+
+            $isGeneral = $user->merchant_type === 'general';
+            foreach ($data as $row) {
+                $fee = $isGeneral ? $row->merchant_fee : $row->sub_merchant_fee;
+                $commission = $isGeneral ? $row->merchant_commission : $row->sub_merchant_commission;
+                $netAmount = $isGeneral ? $row->merchant_main_amount : $row->sub_merchant_main_amount;
+
+                fputcsv($handle, [
+                    $bmMobiles[$row->payment_method_trx] ?? '',
+                    $row->payment_method,
+                    $row->payment_type,
+                    $row->amount,
+                    $fee,
+                    $commission,
+                    $netAmount,
+                    $row->payment_method_trx,
+                    $row->reference,
+                    $row->reject_msg,
+                    optional($row->created_at)->format('Y-m-d H:i:s'),
+                    $this->paymentRequestStatusLabel($row->status),
+                ]);
+            }
+            fclose($handle);
+        }, $filename . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    public function exportServiceRequests(Request $request)
+    {
+        $format = strtolower($request->get('format', 'csv'));
+        $user = auth('merchant')->user();
+        $sort_by = $request->get('sortby', 'id');
+        $sort_type = $request->get('sorttype', 'desc');
+
+        $query_data = $this->buildServiceRequestQuery($request, $user);
+        $data = $query_data->orderBy($sort_by, $sort_type)->get();
+
+        $filename = 'service-requests-' . now()->format('Ymd-His');
+
+        if ($format === 'pdf') {
+            if (!class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+                return redirect()->back()->with('alert', 'PDF export is not available. Please install barryvdh/laravel-dompdf.');
+            }
+
+            $pdf = Pdf::loadView('merchant.exports.service_requests', [
+                'data' => $data,
+                'user' => $user,
+            ])->setPaper('a4', 'landscape');
+
+            return $pdf->download($filename . '.pdf');
+        }
+
+        if ($format === 'excel') {
+            return response()
+                ->view('merchant.exports.service_requests', [
+                    'data' => $data,
+                    'user' => $user,
+                ])
+                ->header('Content-Type', 'application/vnd.ms-excel')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '.xls"');
+        }
+
+        $headers = [
+            'Number',
+            'MFS',
+            'SIM Number',
+            'Old Balance',
+            'Amount',
+            'Fee',
+            'Commission',
+            'Main Balance',
+            'New Balance',
+            'TrxId',
+            'Created At',
+            'Status',
+        ];
+
+        return response()->streamDownload(function () use ($data, $user, $headers) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $headers);
+
+            $isGeneral = $user->merchant_type === 'general';
+            foreach ($data as $row) {
+                $fee = $isGeneral ? $row->merchant_fee : $row->sub_merchant_fee;
+                $commission = $isGeneral ? $row->merchant_commission : $row->sub_merchant_commission;
+                $netAmount = $isGeneral ? $row->merchant_main_amount : $row->sub_merchant_main_amount;
+
+                fputcsv($handle, [
+                    $row->number,
+                    $row->mfs,
+                    $row->sim_number,
+                    $row->old_balance,
+                    $row->amount,
+                    $fee,
+                    $commission,
+                    $netAmount,
+                    $row->new_balance,
+                    $row->get_trxid,
+                    optional($row->created_at)->format('Y-m-d H:i:s'),
+                    $this->serviceRequestStatusLabel($row->status),
+                ]);
+            }
+            fclose($handle);
+        }, $filename . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
 
 
 
@@ -510,6 +576,142 @@ public function depositRequestStore(Request $request)
 
     return [];
 }
+
+    private function buildPaymentRequestQuery(Request $request, $user)
+    {
+        $query_data = PaymentRequest::with(['agent'])
+            ->whereNotNull('payment_method')
+            ->whereNotNull('created_at');
+
+        if ($user->merchant_type == 'sub_merchant') {
+            $query_data->where('sub_merchant', $user->id);
+        } else {
+            $query_data->where('merchant_id', $user->id);
+        }
+
+        if ($request->filled('merchant_id')) {
+            $query_data->where('merchant_id', $request->get('merchant_id'));
+        }
+
+        if ($request->filled('trxid')) {
+            $query_data->where('payment_method_trx', $request->get('trxid'));
+        }
+
+        if ($request->filled('cust_name')) {
+            $cust_name = $request->get('cust_name');
+            $query_data->where(function ($query) use ($cust_name) {
+                $query->where('cust_name', $cust_name)->orWhere('cust_phone', $cust_name);
+            });
+        }
+
+        if ($request->filled('reference')) {
+            $query_data->where('reference', $request->get('reference'));
+        }
+
+        if ($request->filled('status')) {
+            $status = $request->get('status');
+            if ($status == 1) {
+                $query_data->whereIn('status', [1, 2]);
+            } elseif ($status === 'pending') {
+                $query_data->where('status', 0);
+            } else {
+                $query_data->where('status', $status);
+            }
+        }
+
+        if ($request->filled(['start_date', 'end_date'])) {
+            $query_data->where('created_at', '>=', $request->get('start_date'));
+            $query_data->where('created_at', '<=', $request->get('end_date'));
+        }
+
+        return $query_data;
+    }
+
+    private function buildServiceRequestQuery(Request $request, $user)
+    {
+        $query_data = ServiceRequest::query();
+
+        if ($user->merchant_type == 'sub_merchant') {
+            $query_data->where('sub_merchant', $user->id);
+        } else {
+            $query_data->where('merchant_id', $user->id);
+        }
+
+        if ($request->filled('merchant_id')) {
+            $query_data->where('merchant_id', $request->merchant_id);
+        }
+
+        if ($request->filled('trxid')) {
+            $query_data->where('get_trxid', $request->trxid);
+        }
+
+        if ($request->filled('status')) {
+            switch ($request->status) {
+                case 'success': $query_data->whereIn('status', [2, 3]); break;
+                case 'rejected': $query_data->where('status', 4); break;
+                case 'waiting': $query_data->where('status', 1); break;
+                case 'pending': $query_data->where('status', 0); break;
+                case 'processing': $query_data->where('status', 5); break;
+                case 'failed': $query_data->where('status', 6); break;
+            }
+        }
+
+        if ($request->filled('cNumber')) {
+            $query_data->where('number', $request->cNumber);
+        }
+
+        if ($request->filled('mfs')) {
+            $query_data->where('mfs', $request->mfs);
+        }
+
+        if ($request->filled(['from', 'to'])) {
+            $start_date = \Carbon\Carbon::parse($request->from)->startOfDay();
+            $end_date = \Carbon\Carbon::parse($request->to)->endOfDay();
+            $query_data->whereBetween('created_at', [$start_date, $end_date]);
+        }
+
+        return $query_data;
+    }
+
+    private function paymentRequestStatusLabel($status)
+    {
+        if ($status == 0) {
+            return 'Pending';
+        }
+        if ($status == 1) {
+            return 'Success';
+        }
+        if ($status == 2) {
+            return 'Approved';
+        }
+        if ($status == 3) {
+            return 'Rejected';
+        }
+        return 'Unknown';
+    }
+
+    private function serviceRequestStatusLabel($status)
+    {
+        if ($status == 2) {
+            return 'Success';
+        }
+        if ($status == 1) {
+            return 'Waiting';
+        }
+        if ($status == 4) {
+            return 'Rejected';
+        }
+        if ($status == 3) {
+            return 'Approved';
+        }
+        if ($status == 5) {
+            return 'Processing';
+        }
+        if ($status == 6) {
+            return 'Failed';
+        }
+        return 'Pending';
+    }
 
 
 }

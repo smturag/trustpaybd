@@ -12,6 +12,9 @@
             <th scope="col">Number</th>
             <th scope="col">Oldbal</th>
             <th scope="col">Amount</th>
+            <th scope="col">Fee</th>
+            <th scope="col">Commission</th>
+            <th scope="col">Main Balance</th>
             <th scope="col">Lastbal</th>
             <th scope="col">Trxid</th>
            {{--   <th scope="col">Type</th> --}}
@@ -33,6 +36,10 @@
                     $Merchant = App\Models\Merchant::find($row->merchant_id);
                     $designation = "Merchant";
             }
+            $isSubMerchant = !empty($row->sub_merchant);
+            $fee = $isSubMerchant ? $row->sub_merchant_fee : $row->merchant_fee;
+            $commission = $isSubMerchant ? $row->sub_merchant_commission : $row->merchant_commission;
+            $mainAmount = $isSubMerchant ? $row->sub_merchant_main_amount : $row->merchant_main_amount;
         @endphp
             <tr id="{{ $row->id }}">
                 <td>
@@ -79,7 +86,9 @@
                 <td>{{ $row->number }}</td>
                 <td>{{ money($row->old_balance) }}</td>
                 <td>{{ money($row->amount) }}</td>
-
+                <td>{{ $fee !== null ? money($fee) : '-' }}</td>
+                <td>{{ $commission !== null ? money($commission) : '-' }}</td>
+                <td>{{ $mainAmount !== null ? money($mainAmount) : '-' }}</td>
                 <td>{{ money($row->new_balance) }}</td>
                 <td style="width: 150px; word-wrap: break-word; white-space: normal;">
                     {{ $row->get_trxid }}
@@ -177,13 +186,13 @@
 
         @if ($data->isEmpty())
             <tr>
-                <td colspan="15" style="text-align: center;padding: 50px;font-size: 18px;">No Record Found.</td>
+                <td colspan="16" style="text-align: center;padding: 50px;font-size: 18px;">No Record Found.</td>
             </tr>
         @else
             <tr>
             <th colspan="7">Total</th>
             <th><?php echo number_format($total, 2); ?></th>
-            <th>-</th>
+            <th colspan="8"></th>
         </tr>
         @endif
     </tbody>

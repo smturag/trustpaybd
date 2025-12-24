@@ -17,6 +17,11 @@
     <div class="col-xl-12 mx-auto">
         <div class="header d-flex align-items-center mb-3">
             <h6 class="mb-0 text-uppercase ps-3">Service Request List</h6>
+            <div class="ms-auto d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary export-btn" data-format="csv">CSV</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary export-btn" data-format="excel">Excel</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary export-btn" data-format="pdf">PDF</button>
+            </div>
         </div>
         <hr />
 
@@ -174,6 +179,14 @@ $(document).ready(function() {
 
     // Optional: load table on page load
     loadTable();
+
+    $('.export-btn').click(function () {
+        var format = $(this).data('format');
+        var formData = $('#search-form').serialize();
+        var baseUrl = "{{ route('merchant.service-request.export') }}";
+        var url = baseUrl + (formData ? ('?' + formData + '&') : '?') + 'format=' + format;
+        window.location.href = url;
+    });
 });
 </script>
 @endpush

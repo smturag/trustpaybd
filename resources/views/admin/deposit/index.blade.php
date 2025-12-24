@@ -107,6 +107,8 @@
                             <th>Method</th>
                             <th>MFS Method/Trx</th>
                             <th>Amount</th>
+                            <th>Fee</th>
+                            <th>Commission</th>
                             <th>From</th>
                             <th>Note</th>
                             <th>Date</th>
@@ -245,6 +247,8 @@ $(document).ready(function() {
             {data: 'payment_method', name: 'payment_method'},
             {data: 'payment_method_trx', name: 'payment_method_trx'},
             {data: 'amount', name: 'amount'},
+            {data: 'fee', name: 'fee', orderable:false, searchable:false},
+            {data: 'commission', name: 'commission', orderable:false, searchable:false},
             {data: 'from_number', name: 'from_number'},
             {data: 'note', name: 'note'},
             {data: 'dates', name: 'dates'},
@@ -308,8 +312,8 @@ $('#reject_form').on('submit', function(e) {
                 let table = $('#deposit_table').DataTable();
                 let row = table.rows().nodes().to$().find(`button[data-payment-id="${$('#modal_id').val()}"]`).closest('tr');
                 if (row.length) {
-                    $(row).find('td:nth-child(9)').html("<span class='badge bg-danger text-white'>Rejected</span>");
-                    $(row).find('td:nth-child(10)').html(""); // remove action buttons
+                    $(row).find('td:nth-child(11)').html("<span class='badge bg-danger text-white'>Rejected</span>");
+                    $(row).find('td:nth-child(12)').html(""); // remove action buttons
                 }
 
                 swal("Success", res.message, "success");
@@ -379,8 +383,8 @@ $('#spamForm').on('submit', function(e) {
                 let table = $('#deposit_table').DataTable();
                 let row = table.rows().nodes().to$().find(`button[data-payment-id="${res.payment_id}"]`).closest('tr');
                 if (row.length) {
-                    $(row).find('td:nth-child(9)').html("<span class='badge bg-success text-white'>Approved</span>");
-                    $(row).find('td:nth-child(10)').html("");
+                    $(row).find('td:nth-child(11)').html("<span class='badge bg-success text-white'>Approved</span>");
+                    $(row).find('td:nth-child(12)').html("");
                     $(row).css('background-color', '#d4edda').animate({ backgroundColor: '' }, 2000);
                 }
                 swal("Success", res.message, "success");

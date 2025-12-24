@@ -182,6 +182,13 @@
             </li>
 
         <li>
+            <a href="{{ route('merchant.developer.service-rates') }}">
+                <div class="parent-icon"><i class="bx bx-list-ul"></i></div>
+                <div class="menu-title">Service Rates</div>
+            </a>
+        </li>
+
+        <li>
             <a href="{{ route('merchant.support_list_view') }}">
                 <div class="parent-icon"><i class="bx bx-headphone"></i></div>
                 <div class="menu-title">Support</div>

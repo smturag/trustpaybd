@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Merchant;
 
 use App\Models\MerchantIpWhitelist;
 use App\Models\MerchantPvtPublicKey;
+use App\Models\MfsOperator;
+use App\Models\OperatorFeeCommission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +29,19 @@ class DeveloperController
         ];
 
         return view('merchant.developer')->with($data);
+    }
+
+    public function serviceRates()
+    {
+        $merchantId = auth()->guard('merchant')->user()->id;
+
+        $data = [
+            'pageTitle' => 'Service Rates',
+            'rates' => OperatorFeeCommission::where('merchant_id', $merchantId)->get(),
+            'operators' => MfsOperator::where('status', 1)->orderBy('name')->get(),
+        ];
+
+        return view('merchant.developer.service_rates')->with($data);
     }
 
     public function developer_docs()
