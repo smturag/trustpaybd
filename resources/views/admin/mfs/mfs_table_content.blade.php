@@ -138,6 +138,11 @@
                 </td>
 
                 <td>
+                    <a href="#" class="openDetails btn btn-sm btn-outline-primary"
+                        data-href="{{ route('service_req_details', ['id' => $row->id]) }}"
+                        data-bs-toggle="modal" data-bs-target="#myModal">
+                        <i class="bx bx-show" aria-hidden="true"></i>
+                    </a>
 
                     @php
                         $make_user = '';

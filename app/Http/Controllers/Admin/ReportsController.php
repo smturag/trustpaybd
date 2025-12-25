@@ -112,6 +112,29 @@ class ReportsController extends Controller
         return view('admin.mfs.req-approved', compact('request_data'));
     }
 
+    public function serviceReqDetails($id)
+    {
+        $request_data = ServiceRequest::with(['merchant', 'user'])->findOrFail($id);
+
+        $subMerchant = $request_data->sub_merchant ? Merchant::find($request_data->sub_merchant) : null;
+        $customer = $request_data->customer_id ? Customer::find($request_data->customer_id) : null;
+
+        $merchantName = $request_data->merchant->fullname ?: $request_data->merchant->username;
+        $subMerchantName = $subMerchant ? ($subMerchant->fullname ?: $subMerchant->username) : null;
+        $customerName = $customer ? $customer->customer_name : null;
+        $agentName = $request_data->user ? $request_data->user->fullname : null;
+        $modemInfo = $request_data->modem_id ? getSimInfo($request_data->modem_id) : null;
+
+        return view('admin.mfs.req-details', compact(
+            'request_data',
+            'merchantName',
+            'subMerchantName',
+            'customerName',
+            'agentName',
+            'modemInfo'
+        ));
+    }
+
     public function approved_save(Request $request)
     {
         if ($request->ajax()) {

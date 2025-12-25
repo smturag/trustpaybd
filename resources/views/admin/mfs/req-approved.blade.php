@@ -1,65 +1,63 @@
-<div class="modal-content">
-    <div class="modal-header">
-        <h5 class="modal-title" id="largemodal1">{{ $request_data->merchant->username }} -{{ $request_data->mfs }} -
-            {{ $request_data->number }}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div>
+<div class="modal-header">
+    <h5 class="modal-title" id="largemodal1">{{ $request_data->merchant->username }} -{{ $request_data->mfs }} -
+        {{ $request_data->number }}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
 
-    <div class="modal-body">
-        <form action="#" id="approved_save" method="post">
-            @csrf
+<div class="modal-body">
+    <form action="#" id="approved_save" method="post">
+        @csrf
 
-            <table class="table table-bordered table-sm">
-                <tr>
-                    <th>{{ translate('sender') }}</th>
-                    <td>{{ $request_data->merchant->username }}</td>
-                </tr>
-                <tr>
-                    <th>{{ translate('customer_number') }}</th>
-                    <td>{{ $request_data->number }}</td>
-                </tr>
-                <tr>
-                    <th>{{ translate('oldbal') }}</th>
-                    <td>{{ money($request_data->old_balance) }}</td>
-                </tr>
-                <tr>
-                    <th>{{ translate('amount') }}</th>
-                    <td>{{ money($request_data->amount) }}</td>
-                </tr>
-                <tr>
-                    <th>{{ translate('mfs') }}</th>
-                    <td>{{ $request_data->mfs }}</td>
-                </tr>
-                <tr>
-                    <th>{{ translate('type') }}</th>
-                    <td>{{ $request_data->type }}</td>
-                </tr>
-                <tr>
-                    <th>{{ translate('lastbal') }}</th>
-                    <td>{{ money($request_data->new_balance) }}</td>
-                </tr>
-                <tr>
-                    <th>{{ translate('trxid') }}</th>
-                    <td>{{ $request_data->trxid }}</td>
-                </tr>
+        <table class="table table-bordered table-sm">
+            <tr>
+                <th>{{ translate('sender') }}</th>
+                <td>{{ $request_data->merchant->username }}</td>
+            </tr>
+            <tr>
+                <th>{{ translate('customer_number') }}</th>
+                <td>{{ $request_data->number }}</td>
+            </tr>
+            <tr>
+                <th>{{ translate('oldbal') }}</th>
+                <td>{{ money($request_data->old_balance) }}</td>
+            </tr>
+            <tr>
+                <th>{{ translate('amount') }}</th>
+                <td>{{ money($request_data->amount) }}</td>
+            </tr>
+            <tr>
+                <th>{{ translate('mfs') }}</th>
+                <td>{{ $request_data->mfs }}</td>
+            </tr>
+            <tr>
+                <th>{{ translate('type') }}</th>
+                <td>{{ $request_data->type }}</td>
+            </tr>
+            <tr>
+                <th>{{ translate('lastbal') }}</th>
+                <td>{{ money($request_data->new_balance) }}</td>
+            </tr>
+            <tr>
+                <th>{{ translate('trxid') }}</th>
+                <td>{{ $request_data->trxid }}</td>
+            </tr>
 
-            </table>
+        </table>
 
-            <p>SMS Body: {{ $request_data->msg }}</p>
+        <p>SMS Body: {{ $request_data->msg }}</p>
 
-            <div class="form-group">
-                <label for="lastbal">TRX ID</label>
-                <input type="text" name="get_trxid" id="get_trxid" class="form-control"
-                    value="{{ $request_data->get_trxid }}">
-                <input type="hidden" id="id" name="id" value="{{ $request_data->id }}">
-            </div>
+        <div class="form-group">
+            <label for="lastbal">TRX ID</label>
+            <input type="text" name="get_trxid" id="get_trxid" class="form-control"
+                value="{{ $request_data->get_trxid }}">
+            <input type="hidden" id="id" name="id" value="{{ $request_data->id }}">
+        </div>
 
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-success">{{ translate('Update') }}</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </form>
-    </div>
+        <div class="modal-footer">
+            <button type="submit" class="btn btn-success">{{ translate('Update') }}</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+    </form>
 </div>
 
 

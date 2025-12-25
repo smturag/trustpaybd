@@ -124,6 +124,48 @@
 </div>
 
 
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Deposit Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr><th>Payment ID</th><td id="detail_payment_id"></td></tr>
+                            <tr><th>Request ID</th><td id="detail_request_id"></td></tr>
+                            <tr><th>TRX ID</th><td id="detail_trxid"></td></tr>
+                            <tr><th>Name</th><td id="detail_merchant_name"></td></tr>
+                            <tr><th>Designation</th><td id="detail_designation"></td></tr>
+                            <tr><th>Customer Phone</th><td id="detail_cust_phone"></td></tr>
+                            <tr><th>Reference</th><td id="detail_reference"></td></tr>
+                            <tr><th>Payment Method</th><td id="detail_payment_method"></td></tr>
+                            <tr><th>Payment Type</th><td id="detail_payment_type"></td></tr>
+                            <tr><th>Payment Trx</th><td id="detail_payment_trx"></td></tr>
+                            <tr><th>Amount</th><td id="detail_amount"></td></tr>
+                            <tr><th>Fee</th><td id="detail_fee"></td></tr>
+                            <tr><th>Commission</th><td id="detail_commission"></td></tr>
+                            <tr><th>From Number</th><td id="detail_from_number"></td></tr>
+                            <tr><th>Note</th><td id="detail_note"></td></tr>
+                            <tr><th>Status</th><td id="detail_status"></td></tr>
+                            <tr><th>Accepted By</th><td id="detail_accepted_by"></td></tr>
+                            <tr><th>Callback URL</th><td id="detail_callback_url"></td></tr>
+                            <tr><th>Webhook URL</th><td id="detail_webhook_url"></td></tr>
+                            <tr><th>Created At</th><td id="detail_created_at"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="reject_modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered custom-modal">
         <div class="modal-content">
@@ -284,6 +326,35 @@ $(document).on('click', '.rejectPaymentBtn', function() {
     $('#modal_id').val(paymentId);
     $('#reason').val(''); // clear previous reason
     const modal = new bootstrap.Modal(document.getElementById('reject_modal'));
+    modal.show();
+});
+
+$(document).on('click', '.viewPaymentBtn', function() {
+    const data = this.dataset;
+    const setDetail = (id, value) => $(id).text(value || '-');
+
+    setDetail('#detail_payment_id', data.paymentId);
+    setDetail('#detail_request_id', data.requestId);
+    setDetail('#detail_trxid', data.trxid);
+    setDetail('#detail_merchant_name', data.merchantName);
+    setDetail('#detail_designation', data.designation);
+    setDetail('#detail_cust_phone', data.custPhone);
+    setDetail('#detail_reference', data.reference);
+    setDetail('#detail_payment_method', data.paymentMethod);
+    setDetail('#detail_payment_type', data.paymentType);
+    setDetail('#detail_payment_trx', data.paymentTrx);
+    setDetail('#detail_amount', data.amount);
+    setDetail('#detail_fee', data.fee);
+    setDetail('#detail_commission', data.commission);
+    setDetail('#detail_from_number', data.fromNumber);
+    setDetail('#detail_note', data.note);
+    setDetail('#detail_status', data.status);
+    setDetail('#detail_accepted_by', data.acceptedBy);
+    setDetail('#detail_callback_url', data.callbackUrl);
+    setDetail('#detail_webhook_url', data.webhookUrl);
+    setDetail('#detail_created_at', data.createdAt);
+
+    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
     modal.show();
 });
 

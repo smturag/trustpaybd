@@ -45,24 +45,22 @@ class BmToPaymentCheck extends Command
         if ($results1->isNotEmpty()) {
             // Check if results are not empty
             foreach ($results1 as $item) {
-               $check = DB::table('payment_requests')
+                DB::table('payment_requests')
                     ->where('id', $item->id)
                     ->update([
-                        'status' => 0,
+                        'status' => 3,
                         'note' => 'invalid amount',
                         'updated_at' => now(),
                         'balance_updated' => 1,
                         'accepted_by' => 'Automatic',
                     ]);
 
-                    $payment = DB::table('payment_requests')
-                        ->where('id', $item->id)
-                        ->first();
-                    paymentRequestApprovedBalanceHandler($item->id , 'id');
-                    merchantWebHook($payment->reference);
+                $payment = DB::table('payment_requests')
+                    ->where('id', $item->id)
+                    ->first();
+                merchantWebHook($payment->reference);
 
-
-                    Log::info("PaymentRequest {$item->id} marked invalid. PR Amount: {$item->pr_amount}, BM Amount: {$item->bm_amount}");
+                Log::info("PaymentRequest {$item->id} marked invalid. PR Amount: {$item->pr_amount}, BM Amount: {$item->bm_amount}");
             }
         }
 
@@ -134,8 +132,12 @@ class BmToPaymentCheck extends Command
 
 
 
-                if ($mekeMethod && $checkExistTransaction == null ) {
+                if ($mekeMethod && $checkExistTransaction == null) {
                     $agent = Modem::where('sim_number', $item->bm_sim)->first();
+                    if (!$agent) {
+                        Log::warning("PaymentRequest {$item->id} skipped: modem not found for SIM {$item->bm_sim}");
+                        continue;
+                    }
                     $paymentTrxId = generateInvoiceNumber(6);
 
 
@@ -160,8 +162,8 @@ class BmToPaymentCheck extends Command
                     merchantWebHook($payment->reference);
                     paymentRequestApprovedBalanceHandler($item->id , 'id');
                 }
-                return 1; // Assuming return 1 signifies success
             }
         }
+        return 0;
     }
 }

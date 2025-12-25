@@ -24,7 +24,7 @@ class DepositController extends Controller
         // If it's an AJAX request (DataTables)
         if ($request->ajax()) {
             // Only select needed columns
-            $query = PaymentRequest::select(['id', 'merchant_id', 'sub_merchant', 'customer_id', 'payment_method', 'sim_id', 'payment_method_trx', 'cust_name', 'cust_phone', 'status', 'reference', 'payment_type', 'note', 'reject_msg', 'created_at', 'updated_at', 'accepted_by', 'from_number', 'amount', 'merchant_fee', 'merchant_commission', 'sub_merchant_fee', 'sub_merchant_commission'])
+            $query = PaymentRequest::select(['id', 'request_id', 'trxid', 'merchant_id', 'sub_merchant', 'customer_id', 'payment_method', 'sim_id', 'payment_method_trx', 'cust_name', 'cust_phone', 'status', 'reference', 'payment_type', 'note', 'reject_msg', 'created_at', 'updated_at', 'accepted_by', 'from_number', 'amount', 'merchant_fee', 'merchant_commission', 'sub_merchant_fee', 'sub_merchant_commission', 'callback_url', 'webhook_url'])
                 ->with(['merchant:id,fullname', 'subMerchant:id,fullname', 'customer:id,customer_name', 'balanceManager:trxid,mobile', 'sim:sim_id,type'])
                 ->orderBy('created_at', 'desc'); // latest first
 
@@ -166,6 +166,70 @@ class DepositController extends Controller
 
                 ->addColumn('action', function ($row) {
                     $btn = '';
+
+                    $name = 'N/A';
+                    $designation = '-';
+                    if ($row->customer) {
+                        $name = $row->customer->customer_name ?? $row->cust_name;
+                        $designation = 'Customer';
+                    } elseif ($row->subMerchant) {
+                        $name = $row->subMerchant->fullname ?? 'N/A';
+                        $designation = 'Sub Merchant';
+                    } elseif ($row->merchant) {
+                        $name = $row->merchant->fullname ?? 'N/A';
+                        $designation = 'Merchant';
+                    } else {
+                        $name = $row->cust_name ?? 'N/A';
+                    }
+
+                    $statusText = match ($row->status) {
+                        0 => 'Pending',
+                        1 => 'Success',
+                        2 => 'Approved',
+                        3 => 'Rejected',
+                        4 => 'Spam',
+                        default => '-',
+                    };
+
+                    $fromNumber = $row->balanceManager->mobile ?? $row->from_number ?? '-';
+                    $note = $row->note ?? ($row->reject_msg ?? '-');
+                    $fee = $row->sub_merchant ? $row->sub_merchant_fee : $row->merchant_fee;
+                    $commission = $row->sub_merchant ? $row->sub_merchant_commission : $row->merchant_commission;
+                    $amount = $row->amount !== null ? number_format($row->amount, 2) : '-';
+                    $feeText = $fee !== null ? number_format($fee, 2) : '-';
+                    $commissionText = $commission !== null ? number_format($commission, 2) : '-';
+                    $createdAt = $row->created_at ? $row->created_at->format('d-m-Y h:i:sa') : '-';
+                    $updatedAt = $row->updated_at ? $row->updated_at->format('d-m-Y h:i:sa') : '-';
+
+                    $btn .=
+                        '<button type="button"
+                            class="viewPaymentBtn btn btn-sm btn-outline-primary"
+                            data-payment-id="' . e($row->id) . '"
+                            data-request-id="' . e($row->request_id ?? '-') . '"
+                            data-trxid="' . e($row->trxid ?? '-') . '"
+                            data-merchant-name="' . e($name) . '"
+                            data-designation="' . e($designation) . '"
+                            data-reference="' . e($row->reference ?? '-') . '"
+                            data-payment-method="' . e($row->payment_method ?? '-') . '"
+                            data-sim-id="' . e($row->sim_id ?? '-') . '"
+                            data-payment-type="' . e($row->payment_type ?? '-') . '"
+                            data-payment-trx="' . e($row->payment_method_trx ?? '-') . '"
+                            data-amount="' . e($amount) . '"
+                            data-fee="' . e($feeText) . '"
+                            data-commission="' . e($commissionText) . '"
+                            data-from-number="' . e($fromNumber) . '"
+                            data-note="' . e($note) . '"
+                            data-status="' . e($statusText) . '"
+                            data-accepted-by="' . e($row->accepted_by ?? '-') . '"
+                            data-cust-name="' . e($row->cust_name ?? '-') . '"
+                            data-cust-phone="' . e($row->cust_phone ?? '-') . '"
+                            data-callback-url="' . e($row->callback_url ?? '-') . '"
+                            data-webhook-url="' . e($row->webhook_url ?? '-') . '"
+                            data-created-at="' . e($createdAt) . '"
+                            data-updated-at="' . e($updatedAt) . '"
+                        >
+                            <i class="bx bx-show"></i>
+                        </button> ';
 
                     if ($row->status == 0 || $row->status == 4) {
                         $btn .=

@@ -201,9 +201,8 @@
     </div>
 
     <div class="modal fade" id="myModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modalbody">
-            </div>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content" id="myModalContent"></div>
         </div>
     </div>
 
@@ -280,7 +279,18 @@
                 //var dataURL = $(this).attr('data-href');
                 var dataURL = "{{ url('/admin/approved_req') }}/" + id;
 
-                $('.modalbody').load(dataURL, function() {
+                $('#myModalContent').load(dataURL, function() {
+                    $('#myModal').modal({
+                        show: true
+                    });
+                });
+            });
+
+            $(document).on('click', '.openDetails', function(e) {
+                e.preventDefault();
+                var dataURL = $(this).data('href');
+
+                $('#myModalContent').load(dataURL, function() {
                     $('#myModal').modal({
                         show: true
                     });

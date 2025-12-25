@@ -121,6 +121,7 @@ Route::middleware(['verify'])->group(function () {
             Route::get('/sms-inbox', [AdminSmsInbox::class, 'inbox_list'])->name('admin_sms_inbox');
             //sms inbox finish
 
+            Route::get('/service-req/details/{id}', [ReportsController::class, 'serviceReqDetails'])->name('service_req_details');
             Route::get('/service-req/{status}/{agent_number?}', [ReportsController::class, 'serviceReq'])->name('serviceReq');
             Route::any('/approved_req/{id}', [ReportsController::class, 'approved_req'])->name('approved_req');
             Route::post('/approved-save', [ReportsController::class, 'approved_save'])->name('approved_save');
