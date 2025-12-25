@@ -15,7 +15,6 @@ class AdminController extends Controller
 
     public function reset_balance(){
         allBalanceZero();
-
         return redirect()->back();
     }
 

@@ -24,6 +24,19 @@ class MFS_Controller extends Controller
 
     public function insert_mfs(Request $request)
     {
+        $normalizedName = trim((string) $request->mfs_name);
+        $normalizedType = trim((string) $request->mfs_type);
+
+        $exists = MfsOperator::whereRaw('LOWER(name) = ?', [strtolower($normalizedName)])
+            ->where('type', $normalizedType)
+            ->exists();
+
+        if ($exists) {
+            return redirect()->back()
+                ->with('alert', 'Same MFS name and type already exists.')
+                ->withInput();
+        }
+
         $validator = Validator::make($request->all(), [
             'mfs_name' => [
                 'required',
@@ -46,8 +59,8 @@ class MFS_Controller extends Controller
         }
 
         $mfs = new mfsOperator();
-        $mfs->name = $request->mfs_name;
-        $mfs->type = $request->mfs_type;
+        $mfs->name = $normalizedName;
+        $mfs->type = $normalizedType;
         $mfs->deposit_fee = $request->deposit_fee ?? 0;
         $mfs->deposit_commission = $request->deposit_commission ?? 0;
         $mfs->withdraw_fee = $request->withdraw_fee ?? 0;
@@ -130,6 +143,20 @@ class MFS_Controller extends Controller
     {
         $mfs = mfsOperator::findOrFail($id);
 
+        $normalizedName = trim((string) $request->mfs_name);
+        $normalizedType = trim((string) $request->mfs_type);
+
+        $exists = MfsOperator::whereRaw('LOWER(name) = ?', [strtolower($normalizedName)])
+            ->where('type', $normalizedType)
+            ->where('id', '!=', $mfs->id)
+            ->exists();
+
+        if ($exists) {
+            return redirect()->back()
+                ->with('alert', 'Same MFS name and type already exists.')
+                ->withInput();
+        }
+
         $validator = Validator::make($request->all(), [
             'mfs_name' => ['required', 'string', 'max:255', Rule::unique('mfs_operators', 'name')->where(fn($query) => $query->where('type', $request->mfs_type))->ignore($mfs->id)],
             'mfs_type' => 'required|string|max:20',
@@ -145,8 +172,8 @@ class MFS_Controller extends Controller
         }
 
         // ✅ Update fields
-        $mfs->name = $request->mfs_name;
-        $mfs->type = $request->mfs_type;
+        $mfs->name = $normalizedName;
+        $mfs->type = $normalizedType;
         $mfs->deposit_fee = $request->deposit_fee ?? 0;
         $mfs->deposit_commission = $request->deposit_commission ?? 0;
         $mfs->withdraw_fee = $request->withdraw_fee ?? 0;

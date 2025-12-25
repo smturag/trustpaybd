@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 function allBalanceZero()
 {
+    backfillRatesForBalanceReset();
+
     $merchantList = Merchant::all();
 
     foreach ($merchantList as $merchant) {
@@ -48,6 +50,146 @@ function allBalanceZero()
     //     $customer->balance = 0;
     //     $customer->save();
     // }
+}
+
+function backfillRatesForBalanceReset()
+{
+    PaymentRequest::whereNotNull('merchant_id')
+        ->where('amount', '>', 0)
+        ->orderBy('id')
+        ->chunkById(200, function ($requests) {
+            foreach ($requests as $request) {
+                $amount = (float) $request->amount;
+                if ($amount <= 0 || empty($request->payment_method)) {
+                    continue;
+                }
+
+                $updates = [];
+                $paymentType = $request->payment_type ?: 'P2A';
+                $rateMerchantId = $request->sub_merchant ?: $request->merchant_id;
+                if (!$rateMerchantId) {
+                    continue;
+                }
+
+                $mfsOperatorId = MfsOperator::where('name', $request->payment_method)
+                    ->where('type', $paymentType)
+                    ->value('id');
+
+                $merchantRate = calculateAmountFromRate(
+                    $request->payment_method,
+                    $paymentType,
+                    'deposit',
+                    $rateMerchantId,
+                    $amount,
+                    $mfsOperatorId
+                );
+
+                if (empty($merchantRate['error'])) {
+                    $updates['merchant_fee'] = $merchantRate['general']['fee_amount'];
+                    $updates['merchant_commission'] = $merchantRate['general']['commission_amount'];
+                    $updates['merchant_main_amount'] = $merchantRate['general']['net_amount'];
+                    $updates['sub_merchant_fee'] = $merchantRate['sub_merchant']['fee_amount'];
+                    $updates['sub_merchant_commission'] = $merchantRate['sub_merchant']['commission_amount'];
+                    $updates['sub_merchant_main_amount'] = $merchantRate['sub_merchant']['net_amount'];
+                }
+
+                $agent = $request->agent ? User::where('member_code', $request->agent)->first() : null;
+                if ($agent) {
+                    $memberRate = calculateAmountFromRateForMember(
+                        $request->payment_method,
+                        $paymentType,
+                        'deposit',
+                        $agent->id,
+                        $amount,
+                        $mfsOperatorId
+                    );
+
+                    if (empty($memberRate['error'])) {
+                        $updates['partner_fee'] = $memberRate['member']['fee_amount'];
+                        $updates['partner_commission'] = $memberRate['member']['commission_amount'];
+                        $updates['partner_main_amount'] = $memberRate['member']['net_amount'];
+                        $updates['user_fee'] = $memberRate['agent']['fee_amount'];
+                        $updates['user_commission'] = $memberRate['agent']['commission_amount'];
+                        $updates['user_main_amount'] = $memberRate['agent']['net_amount'];
+                    }
+                }
+
+                if (!empty($updates)) {
+                    $request->fill($updates);
+                    $request->save();
+                }
+            }
+        });
+
+    ServiceRequest::whereNotNull('merchant_id')
+        ->where('amount', '>', 0)
+        ->orderBy('id')
+        ->chunkById(200, function ($requests) {
+            foreach ($requests as $servicedata) {
+                $amount = (float) $servicedata->amount;
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                $updates = [];
+                $mfsOperator = null;
+                if (!empty($servicedata->mfs_id)) {
+                    $mfsOperator = MfsOperator::find($servicedata->mfs_id);
+                } elseif (!empty($servicedata->mfs)) {
+                    $mfsOperator = MfsOperator::where('name', $servicedata->mfs)->first();
+                }
+
+                $paymentType = $mfsOperator->type ?? 'P2A';
+                $paymentMethod = $mfsOperator->name ?? $servicedata->mfs;
+                $mfsOperatorId = $mfsOperator->id ?? $servicedata->mfs_id;
+
+                $rateMerchantId = $servicedata->sub_merchant ?: $servicedata->merchant_id;
+                if ($rateMerchantId && $paymentMethod) {
+                    $merchantRate = calculateAmountFromRate(
+                        $paymentMethod,
+                        $paymentType,
+                        'withdraw',
+                        $rateMerchantId,
+                        $amount,
+                        $mfsOperatorId
+                    );
+
+                    if (empty($merchantRate['error'])) {
+                        $updates['merchant_fee'] = $merchantRate['general']['fee_amount'];
+                        $updates['merchant_commission'] = $merchantRate['general']['commission_amount'];
+                        $updates['merchant_main_amount'] = $merchantRate['general']['net_amount'];
+                        $updates['sub_merchant_fee'] = $merchantRate['sub_merchant']['fee_amount'];
+                        $updates['sub_merchant_commission'] = $merchantRate['sub_merchant']['commission_amount'];
+                        $updates['sub_merchant_main_amount'] = $merchantRate['sub_merchant']['net_amount'];
+                    }
+                }
+
+                if (!empty($servicedata->agent_id) && is_numeric($servicedata->agent_id)) {
+                    $memberRate = calculateAmountFromRateForMember(
+                        $paymentMethod,
+                        $paymentType,
+                        'withdraw',
+                        (int) $servicedata->agent_id,
+                        $amount,
+                        $mfsOperatorId
+                    );
+
+                    if (empty($memberRate['error'])) {
+                        $updates['partner_fee'] = $memberRate['member']['fee_amount'];
+                        $updates['partner_commission'] = $memberRate['member']['commission_amount'];
+                        $updates['partner_main_amount'] = $memberRate['member']['net_amount'];
+                        $updates['user_fee'] = $memberRate['agent']['fee_amount'];
+                        $updates['user_commission'] = $memberRate['agent']['commission_amount'];
+                        $updates['user_main_amount'] = $memberRate['agent']['net_amount'];
+                    }
+                }
+
+                if (!empty($updates)) {
+                    $servicedata->fill($updates);
+                    $servicedata->save();
+                }
+            }
+        });
 }
 
 /**
@@ -120,7 +262,7 @@ function partnerBalanceAction($partnerId, $action, $amount, $own)
     }
 }
 
-function calculateAmountFromRate($paymentMethod, $paymentType, $action, $merchantId, $amount)
+function calculateAmountFromRate($paymentMethod, $paymentType, $action, $merchantId, $amount, $mfsOperatorId = null)
 {
     $merchant = Merchant::find($merchantId);
 
@@ -138,7 +280,23 @@ function calculateAmountFromRate($paymentMethod, $paymentType, $action, $merchan
     // ----------------------------
     $generalMerchantId = $merchant->merchant_type === 'sub_merchant' && $merchant->create_by ? $merchant->create_by : $merchant->id;
 
-    $generalFeeRecord = OperatorFeeCommission::join('mfs_operators', 'operator_fee_commissions.mfs_operator_id', '=', 'mfs_operators.id')->where('mfs_operators.name', $paymentMethod)->where('mfs_operators.type', $paymentType)->where('operator_fee_commissions.merchant_id', $generalMerchantId)->where('operator_fee_commissions.action', $action)->select('operator_fee_commissions.*')->first();
+    $paymentMethodNormalized = $paymentMethod ? strtolower($paymentMethod) : $paymentMethod;
+
+    if (!empty($mfsOperatorId)) {
+        $generalFeeRecord = OperatorFeeCommission::where('operator_fee_commissions.mfs_operator_id', $mfsOperatorId)
+            ->where('operator_fee_commissions.merchant_id', $generalMerchantId)
+            ->where('operator_fee_commissions.action', $action)
+            ->select('operator_fee_commissions.*')
+            ->first();
+    } else {
+        $generalFeeRecord = OperatorFeeCommission::join('mfs_operators', 'operator_fee_commissions.mfs_operator_id', '=', 'mfs_operators.id')
+            ->whereRaw('LOWER(mfs_operators.name) = ?', [$paymentMethodNormalized])
+            ->where('mfs_operators.type', $paymentType)
+            ->where('operator_fee_commissions.merchant_id', $generalMerchantId)
+            ->where('operator_fee_commissions.action', $action)
+            ->select('operator_fee_commissions.*')
+            ->first();
+    }
 
     // If not found, fallback to zeros
     $generalFeePercent = $generalFeeRecord->fee ?? 0;
@@ -164,7 +322,21 @@ function calculateAmountFromRate($paymentMethod, $paymentType, $action, $merchan
         // Base amount for sub-merchant = general merchant’s net amount
         $baseAmount = $amount;
 
-        $subFeeRecord = OperatorFeeCommission::join('mfs_operators', 'operator_fee_commissions.mfs_operator_id', '=', 'mfs_operators.id')->where('mfs_operators.name', $paymentMethod)->where('mfs_operators.type', $paymentType)->where('operator_fee_commissions.merchant_id', $merchant->id)->where('operator_fee_commissions.action', $action)->select('operator_fee_commissions.*')->first();
+        if (!empty($mfsOperatorId)) {
+            $subFeeRecord = OperatorFeeCommission::where('operator_fee_commissions.mfs_operator_id', $mfsOperatorId)
+                ->where('operator_fee_commissions.merchant_id', $merchant->id)
+                ->where('operator_fee_commissions.action', $action)
+                ->select('operator_fee_commissions.*')
+                ->first();
+        } else {
+            $subFeeRecord = OperatorFeeCommission::join('mfs_operators', 'operator_fee_commissions.mfs_operator_id', '=', 'mfs_operators.id')
+                ->whereRaw('LOWER(mfs_operators.name) = ?', [$paymentMethodNormalized])
+                ->where('mfs_operators.type', $paymentType)
+                ->where('operator_fee_commissions.merchant_id', $merchant->id)
+                ->where('operator_fee_commissions.action', $action)
+                ->select('operator_fee_commissions.*')
+                ->first();
+        }
 
         // If not found, set all to zero
         $subFeePercent = $subFeeRecord->fee ?? 0;
@@ -201,7 +373,7 @@ function calculateAmountFromRate($paymentMethod, $paymentType, $action, $merchan
     ];
 }
 
-function calculateAmountFromRateForMember($paymentMethod, $paymentType, $action, $memberId, $amount)
+function calculateAmountFromRateForMember($paymentMethod, $paymentType, $action, $memberId, $amount, $mfsOperatorId = null)
 {
     $member = User::find($memberId);
 
@@ -219,7 +391,23 @@ function calculateAmountFromRateForMember($paymentMethod, $paymentType, $action,
     // ----------------------------
     $partnerId = $member->user_type === 'agent' && $member->create_by ? $member->create_by : $member->id;
 
-    $partnerFeeRecord = UserCharge::join('mfs_operators', 'user_charges.mfs_operator_id', '=', 'mfs_operators.id')->where('mfs_operators.name', $paymentMethod)->where('mfs_operators.type', $paymentType)->where('user_charges.user_id', $partnerId)->where('user_charges.action', $action)->select('user_charges.*')->first();
+    $paymentMethodNormalized = $paymentMethod ? strtolower($paymentMethod) : $paymentMethod;
+
+    if (!empty($mfsOperatorId)) {
+        $partnerFeeRecord = UserCharge::where('user_charges.mfs_operator_id', $mfsOperatorId)
+            ->where('user_charges.user_id', $partnerId)
+            ->where('user_charges.action', $action)
+            ->select('user_charges.*')
+            ->first();
+    } else {
+        $partnerFeeRecord = UserCharge::join('mfs_operators', 'user_charges.mfs_operator_id', '=', 'mfs_operators.id')
+            ->whereRaw('LOWER(mfs_operators.name) = ?', [$paymentMethodNormalized])
+            ->where('mfs_operators.type', $paymentType)
+            ->where('user_charges.user_id', $partnerId)
+            ->where('user_charges.action', $action)
+            ->select('user_charges.*')
+            ->first();
+    }
 
     // If not found, fallback to zeros
     $partnerFeePercent = $partnerFeeRecord->fee ?? 0;
@@ -245,7 +433,21 @@ function calculateAmountFromRateForMember($paymentMethod, $paymentType, $action,
         // Base amount for sub-merchant = general merchant’s net amount
         $baseAmount = $amount;
 
-        $subFeeRecord = UserCharge::join('mfs_operators', 'user_charges.mfs_operator_id', '=', 'mfs_operators.id')->where('mfs_operators.name', $paymentMethod)->where('mfs_operators.type', $paymentType)->where('user_charges.user_id', $member->id)->where('user_charges.action', $action)->select('user_charges.*')->first();
+        if (!empty($mfsOperatorId)) {
+            $subFeeRecord = UserCharge::where('user_charges.mfs_operator_id', $mfsOperatorId)
+                ->where('user_charges.user_id', $member->id)
+                ->where('user_charges.action', $action)
+                ->select('user_charges.*')
+                ->first();
+        } else {
+            $subFeeRecord = UserCharge::join('mfs_operators', 'user_charges.mfs_operator_id', '=', 'mfs_operators.id')
+                ->whereRaw('LOWER(mfs_operators.name) = ?', [$paymentMethodNormalized])
+                ->where('mfs_operators.type', $paymentType)
+                ->where('user_charges.user_id', $member->id)
+                ->where('user_charges.action', $action)
+                ->select('user_charges.*')
+                ->first();
+        }
 
         // If not found, set all to zero
         $subFeePercent = $subFeeRecord->fee ?? 0;
@@ -446,14 +648,17 @@ function serviceRequestApprovedBalanceHandler($serviceRequestId)
             }
 
             $paymentType = $mfsOperator->type ?? 'P2A';
+            $paymentMethod = $mfsOperator->name ?? $servicedata->mfs;
+            $mfsOperatorId = $mfsOperator->id ?? $servicedata->mfs_id;
             $rateMerchantId = $servicedata->sub_merchant ?: $servicedata->merchant_id;
 
             $merchantRate = calculateAmountFromRate(
-                $servicedata->mfs,
+                $paymentMethod,
                 $paymentType,
                 'withdraw',
                 $rateMerchantId,
-                $amount
+                $amount,
+                $mfsOperatorId
             );
 
             if (empty($merchantRate['error'])) {
@@ -481,12 +686,15 @@ function serviceRequestApprovedBalanceHandler($serviceRequestId)
             }
 
             $paymentType = $mfsOperator->type ?? 'P2A';
+            $paymentMethod = $mfsOperator->name ?? $servicedata->mfs;
+            $mfsOperatorId = $mfsOperator->id ?? $servicedata->mfs_id;
             $memberRate = calculateAmountFromRateForMember(
-                $servicedata->mfs,
+                $paymentMethod,
                 $paymentType,
                 'withdraw',
                 $servicedata->agent_id,
-                $amount
+                $amount,
+                $mfsOperatorId
             );
 
             if (empty($memberRate['error'])) {

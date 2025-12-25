@@ -135,18 +135,44 @@ class PaymentMFSController extends Controller
 
         $findThisRequest = PaymentRequest::where('request_id', $request->request_id)->first();
 
-        if ($findThisRequest->merchant_main_amount == 0.0) {
-            $merchantId = '';
-            $merchant_type = '';
+        $paymentType = strtoupper((string) $request->type);
+        $paymentMethod = $request->payment_method;
+        $mfsOperator = MfsOperator::whereRaw('LOWER(name) = ?', [strtolower($paymentMethod)])
+            ->where('type', $paymentType)
+            ->first();
+        if (!$mfsOperator) {
+            $mfsOperator = MfsOperator::whereRaw('LOWER(name) = ?', [strtolower($paymentMethod)])->first();
+        }
+        $paymentType = $mfsOperator->type ?? $paymentType;
+        $mfsOperatorId = $mfsOperator->id ?? null;
 
-            if ($findThisRequest->sub_merchant == null) {
-                $merchantId = $findThisRequest->merchant_id;
-            } else {
-                $merchantId = $findThisRequest->sub_merchant;
-                $merchant_type = 'sub_merchant';
-            }
+        Log::info('payment_save: rate lookup context', [
+            'request_id' => $request->request_id,
+            'payment_method' => $paymentMethod,
+            'payment_type' => $paymentType,
+            'mfs_operator_id' => $mfsOperatorId,
+            'amount' => $findThisRequest->amount,
+        ]);
 
-            $merchantRate = calculateAmountFromRate($request->payment_method, $request->type, 'deposit', $merchantId, $findThisRequest->amount);
+        $merchantId = $findThisRequest->sub_merchant ?: $findThisRequest->merchant_id;
+        $needsMerchantRate = $findThisRequest->merchant_main_amount === null || $findThisRequest->merchant_main_amount <= 0 ||
+            ($findThisRequest->sub_merchant && ($findThisRequest->sub_merchant_main_amount === null || $findThisRequest->sub_merchant_main_amount <= 0));
+
+        if ($merchantId && $needsMerchantRate) {
+            $merchantRate = calculateAmountFromRate(
+                $paymentMethod,
+                $paymentType,
+                'deposit',
+                $merchantId,
+                $findThisRequest->amount,
+                $mfsOperatorId
+            );
+
+            Log::info('payment_save: merchant rate calculated', [
+                'request_id' => $request->request_id,
+                'merchant_id' => $merchantId,
+                'rates' => $merchantRate,
+            ]);
 
             $findThisRequest->update([
                 'merchant_fee' => $merchantRate['general']['fee_amount'],
@@ -155,7 +181,11 @@ class PaymentMFSController extends Controller
                 'sub_merchant_commission' => $merchantRate['sub_merchant']['commission_amount'],
                 'merchant_main_amount' => $merchantRate['general']['net_amount'],
                 'sub_merchant_main_amount' => $merchantRate['sub_merchant']['net_amount'],
-                'payment_type' => $request->type,
+                'payment_type' => $paymentType,
+            ]);
+        } else {
+            $findThisRequest->update([
+                'payment_type' => $paymentType,
             ]);
         }
 
@@ -220,11 +250,27 @@ class PaymentMFSController extends Controller
 
         $cacheKey = 'commission_updated_' . $data['request_id'];
 
-        if (!Cache::has($cacheKey)) {
+        $needsMemberRate = $findThisRequest->user_main_amount === null || $findThisRequest->user_main_amount <= 0 ||
+            $findThisRequest->partner_main_amount === null || $findThisRequest->partner_main_amount <= 0;
+
+        if ($needsMemberRate || !Cache::has($cacheKey)) {
             $findAgent = User::where('member_code', $agent->member_code)->first();
 
             if ($findAgent) {
-                $memberRate = calculateAmountFromRateForMember($request->payment_method, $request->type, 'deposit', $findAgent->id, $findThisRequest->amount);
+                $memberRate = calculateAmountFromRateForMember(
+                    $paymentMethod,
+                    $paymentType,
+                    'deposit',
+                    $findAgent->id,
+                    $findThisRequest->amount,
+                    $mfsOperatorId
+                );
+
+                Log::info('payment_save: member rate calculated', [
+                    'request_id' => $data['request_id'],
+                    'agent_id' => $findAgent->id,
+                    'rates' => $memberRate,
+                ]);
 
                 DB::table('payment_requests')
                     ->where('request_id', $data['request_id'])

@@ -44,7 +44,7 @@
 
                         @foreach(['deposit','withdraw'] as $action)
                             @php
-                                $record = $merchant->merchant_rate->firstWhere(function($r) use($operator,$action){
+                                $record = $merchant->merchant_rate->first(function($r) use ($operator, $action) {
                                     return $r->mfs_operator_id == $operator->id && $r->action == $action;
                                 });
 

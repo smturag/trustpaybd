@@ -84,14 +84,13 @@
                                                             data-bs-target="#exampleModal">Edit</button></a>
                                                 </li>
                                                 <li>
-                                                    <form action="{{ route('mfs.destroy') }}" method="POST"
-                                                        id="deleteForm">
+                                                    <form action="{{ route('mfs.destroy') }}" method="POST">
                                                         @csrf
-                                                        <input hidden name="id" value=" {{ $data->id }}">
-                                                        <a class="dropdown-item" href="#"><button type="button"
-                                                                class="btn btn-danger px-5"
-                                                                onclick="confirmDelete()">Delete</button></a>
-
+                                                        <input type="hidden" name="id" value="{{ $data->id }}">
+                                                        <a class="dropdown-item" href="#">
+                                                            <button type="submit" class="btn btn-danger px-5"
+                                                                onclick="return confirmDelete(this);">Delete</button>
+                                                        </a>
                                                     </form>
                                                 </li>
 
@@ -197,10 +196,11 @@
         });
 
 
-        function confirmDelete() {
+        function confirmDelete(button) {
             if (confirm('Are you sure you want to delete this record?')) {
-                document.getElementById('deleteForm').submit();
+                return true;
             }
+            return false;
         }
     </script>
 @endpush
