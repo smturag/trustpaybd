@@ -608,6 +608,10 @@ public function depositRequestStore(Request $request)
             $query_data->where('reference', $request->get('reference'));
         }
 
+        if ($request->filled('payment_type')) {
+            $query_data->where('payment_type', $request->get('payment_type'));
+        }
+
         if ($request->filled('status')) {
             $status = $request->get('status');
             if ($status == 1) {

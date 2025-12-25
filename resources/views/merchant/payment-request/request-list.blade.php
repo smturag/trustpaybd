@@ -80,6 +80,18 @@
 
                             <div class="col-md-2">
                                 <div class="form-group">
+                                    <label for="payment_type">Type</label>
+                                    <select name="payment_type" class="form-control" id="payment_type">
+                                        <option value="">Select Type</option>
+                                        <option value="P2A" {{ request('payment_type') == 'P2A' ? 'selected' : '' }}>P2A - Cash Out</option>
+                                        <option value="P2P" {{ request('payment_type') == 'P2P' ? 'selected' : '' }}>P2P - Send Money</option>
+                                        <option value="P2C" {{ request('payment_type') == 'P2C' ? 'selected' : '' }}>P2C - Payment</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
                                     <label for="message">End Date</label>
                                     <input type="date" class="form-control" name="end_date" id="end_date">
                                 </div>
