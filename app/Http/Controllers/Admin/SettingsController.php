@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Models\SystemSetting;
 
 class SettingsController extends Controller
 {
@@ -110,5 +111,45 @@ class SettingsController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Toggle maintenance mode
+     */
+    public function toggleMaintenanceMode(Request $request)
+    {
+        $status = $request->input('status'); // 1 = ON, 0 = OFF
+
+        if ($status == '1') {
+            SystemSetting::enableMaintenanceMode();
+            $message = 'Maintenance mode enabled. System is now under maintenance.';
+        } else {
+            SystemSetting::disableMaintenanceMode();
+            $message = 'Maintenance mode disabled. System is now operational.';
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'status' => $status,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Get maintenance mode status
+     */
+    public function getMaintenanceStatus()
+    {
+        $status = SystemSetting::isMaintenanceMode();
+
+        return response()->json([
+            'success' => true,
+            'maintenance_mode' => $status,
+            'status' => $status ? '1' : '0',
+        ]);
     }
 }

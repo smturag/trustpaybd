@@ -199,8 +199,8 @@
                 <div class="card-body p-4 d-flex align-items-center">
                     <div class="widget-icon-bg"><i class='bx bxs-group'></i></div>
                     <div>
-                        <div class="fw-semibold mb-2">Total Agent <span class="badge bg-info rounded-pill">{{ $total_agent }}</span></div>
-                        <div class="fw-bold">৳{{money(allAgentBalance()['allAgentBalance'])}}</div>
+                        <div class="fw-semibold mb-2">Total Agent</div>
+                        <div class="fw-bold">{{ $total_agent }}</div>
                         <div class="widget-trend text-info"><i class='bx bx-user'></i> Only Agent User</div>
                     </div>
                 </div>
@@ -212,8 +212,8 @@
                 <div class="card-body p-4 d-flex align-items-center">
                     <div class="widget-icon-bg"><i class='bx bxs-group'></i></div>
                     <div>
-                        <div class="fw-semibold mb-2">Total Merchant <span class="badge bg-info rounded-pill">{{DB::table('merchants')->count()}}</span></div>
-                        <div class="fw-bold">৳{{money(allMerchantBalance()['balance'])}}</div>
+                        <div class="fw-semibold mb-2">Total Merchant</div>
+                        <div class="fw-bold">{{DB::table('merchants')->count()}}</div>
                         <div class="widget-trend text-success"><i class='bx bx-user'></i> Only Merchant User</div>
                     </div>
                 </div>
@@ -232,32 +232,6 @@
                 </div>
             </div>
         </div>
-        {{-- Widget: Total Payment Request --}}
-        <div class="col">
-            <div class="card dashboard-card widget-payment-total radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-binoculars'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Total Payment Request</div>
-                        <div class="fw-bold">৳{{ money($total_payment_request) }}</div>
-                        <div class="widget-trend text-primary"><i class='bx bx-check'></i> Only Success + Approved <span class="badge bg-primary rounded-pill">{{ $total_payment_request_transection }}</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{-- Widget: Pending Payment --}}
-        <div class="col">
-            <div class="card dashboard-card widget-payment-pending radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-binoculars'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Pending Payment</div>
-                        <div class="fw-bold">{{ money(adminBalance()['totalPendingPayment']) }}</div>
-                        <div class="widget-trend text-warning"><i class='bx bx-time'></i> Only Pending</div>
-                    </div>
-                </div>
-            </div>
-        </div>
         {{-- Widget: Today MFS Request --}}
         <div class="col">
             <div class="card dashboard-card widget-mfs-today radius-10">
@@ -266,85 +240,6 @@
                     <div>
                         <div class="fw-semibold mb-2">Today MFS Request</div>
                         <div class="fw-bold">৳{{ money($today_total_mfs_request) }}</div>
-                        <div class="widget-trend text-primary"><i class='bx bx-check'></i> Only Success + Approved</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{-- Widget: Total MFS Request --}}
-        <div class="col">
-            <div class="card dashboard-card widget-mfs-total radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-binoculars'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Total MFS Request</div>
-                        <div class="fw-bold">৳{{ money($total_mfs_request) }}</div>
-                        <div class="widget-trend text-primary"><i class='bx bx-check'></i> Only Success + Approved <span class="badge bg-primary rounded-pill">{{ $total_mfs_transection }}</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{-- Widget: Pending MFS --}}
-        <div class="col">
-            <div class="card dashboard-card widget-mfs-pending radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-binoculars'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Pending MFS</div>
-                        <div class="fw-bold">৳{{ money(adminBalance()['totalPendingMfs']) }}</div>
-                        <div class="widget-trend text-warning"><i class='bx bx-time'></i> Only Pending + waiting + Processing + Failed</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{-- Widget: Total Add Balance Agent --}}
-        <div class="col">
-            <div class="card dashboard-card widget-agent-credit radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-user'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Total Add Balance Agent</div>
-                        <div class="fw-bold">{{money(allAgentBalance()['adminCreditAmount'])}}</div>
-                        <div class="widget-trend text-primary"><i class='bx bx-check'></i> Only Success + Approved</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Widget: Total Agent Return --}}
-        <div class="col">
-            <div class="card dashboard-card widget-agent-debit radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-user'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Total Agent Return</div>
-                        <div class="fw-bold">{{money(allAgentBalance()['adminDebitAmount'] )}}</div>
-                        <div class="widget-trend text-primary"><i class='bx bx-check'></i> Only Success + Approved</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{-- Widget: Total Add Balance Merchants --}}
-        <div class="col">
-            <div class="card dashboard-card widget-merchant-credit radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-user'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Total Add Balance Merchants</div>
-                        <div class="fw-bold">৳{{money(allMerchantBalance()['adminCreditAmount'] )}}</div>
-                        <div class="widget-trend text-primary"><i class='bx bx-check'></i> Only Success + Approved</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{-- Widget: Total Merchants Return --}}
-        <div class="col">
-            <div class="card dashboard-card widget-merchant-debit radius-10">
-                <div class="card-body p-4 d-flex align-items-center">
-                    <div class="widget-icon-bg"><i class='bx bxs-user'></i></div>
-                    <div>
-                        <div class="fw-semibold mb-2">Total Merchants Return</div>
-                        <div class="fw-bold">৳{{money(allMerchantBalance()['adminDebitAmount'] )}}</div>
                         <div class="widget-trend text-primary"><i class='bx bx-check'></i> Only Success + Approved</div>
                     </div>
                 </div>

@@ -459,6 +459,37 @@
                 //   return false;
                 // }
 
+                // Check if transaction ID already exists in payment_requests
+                try {
+                    const checkResponse = await $.ajax({
+                        url: '{{ url("/checkout/payment/check-transaction-id") }}',
+                        type: 'POST',
+                        data: {
+                            trxid: transaction_trx,
+                            request_id: req_id
+                        },
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        }
+                    });
+
+                    // Handle response from transaction ID check
+                    if (checkResponse.success === false) {
+                        // Transaction ID already exists and cannot be used
+                        Swal.fire({
+                            title: 'Transaction ID Already Exists!',
+                            text: checkResponse.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Error checking transaction ID:', error);
+                    toastr.error('Failed to validate transaction ID. Please try again.');
+                    return false;
+                }
+
                 var modal = document.getElementById("paymentVerificationModal");
 
                 history.pushState(null, null, document.URL);
@@ -485,32 +516,67 @@
                         cancelButton: 'btn-red'
                     },
                     dangerMode: true,
-                }).then((result) => {
+                }).then(async (result) => {
                     if (result.isConfirmed) {
                         // Show the modal
                         modal.classList.remove('hidden');
                         var popup_timer = $('#popup-timer');
                         $('#timer').addClass('hidden');
 
-                        var duration = 300;
+                        // Submit transaction ID immediately
+                        try {
+                            const submitResponse = await $.ajax({
+                                url: '{{ url("/checkout/payment/submit-transaction-id") }}',
+                                type: 'POST',
+                                data: $('#payment_form').serialize(),
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                }
+                            });
 
-                        setInterval(function() {
-                            let minutes = Math.floor(duration / 60);
-                            let seconds = duration % 60;
-
-                            minutes = minutes < 10 ? "0" + minutes : minutes;
-                            seconds = seconds < 10 ? "0" + seconds : seconds;
-
-                            popup_timer.text("Redirecting after " + minutes + ":" + seconds);
-
-                            if (--duration < 0) {
-                                clearInterval(interval);
+                            if (submitResponse.success === false) {
+                                modal.classList.add('hidden');
+                                toastr.error(submitResponse.message);
+                                return false;
                             }
 
-                        }, 1000);
-                        setInterval(function(interval) {
-                            paymentVerification(interval);
-                        }, 10000);
+                            // Transaction ID submitted successfully, start checking status
+                            $('#modal-message').html('Transaction ID submitted. Checking status...');
+                            
+                            var duration = 300;
+                            let statusCheckInterval = null;
+
+                            // Timer countdown
+                            let timerInterval = setInterval(function() {
+                                let minutes = Math.floor(duration / 60);
+                                let seconds = duration % 60;
+
+                                minutes = minutes < 10 ? "0" + minutes : minutes;
+                                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                                popup_timer.text("Checking status... " + minutes + ":" + seconds);
+
+                                if (--duration < 0) {
+                                    clearInterval(timerInterval);
+                                    clearInterval(statusCheckInterval);
+                                    toastr.error('Time expired');
+                                    window.location.reload();
+                                }
+                            }, 1000);
+
+                            // Check status every 5 seconds
+                            statusCheckInterval = setInterval(function() {
+                                checkTransactionStatus(req_id, timerInterval, statusCheckInterval);
+                            }, 5000);
+
+                            // Check immediately once
+                            checkTransactionStatus(req_id, timerInterval, statusCheckInterval);
+
+                        } catch (error) {
+                            modal.classList.add('hidden');
+                            console.error('Submit error:', error);
+                            toastr.error('Failed to submit transaction ID. Please try again.');
+                        }
                     }
                 });
 
@@ -545,6 +611,50 @@
             hideValidationDiv();
         }
 
+        function checkTransactionStatus(requestId, timerInterval, statusCheckInterval) {
+            $.ajax({
+                url: '{{ url("/checkout/payment/check-status") }}',
+                type: 'POST',
+                data: {
+                    request_id: requestId
+                },
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    if (response.status === 'completed') {
+                        // Status 1 or 2 - Success
+                        clearInterval(timerInterval);
+                        clearInterval(statusCheckInterval);
+                        
+                        toastr.success(response.message);
+                        $('#modal-message').html('<span class="text-green-600 font-bold">✓ ' + response.message + '</span>');
+                        
+                        setTimeout(function() {
+                            window.location.href = response.url;
+                        }, 2000);
+                    } else if (response.status === 'rejected') {
+                        // Status 3 - Rejected
+                        clearInterval(timerInterval);
+                        clearInterval(statusCheckInterval);
+                        
+                        toastr.error(response.message);
+                        $('#modal-message').html('<span class="text-red-600 font-bold">✗ ' + response.message + '</span>');
+                        
+                        setTimeout(function() {
+                            window.location.href = response.url;
+                        }, 3000);
+                    } else {
+                        // Status 0 - Still pending
+                        $('#modal-message').html('<span class="text-yellow-600">⏳ ' + response.message + '</span>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Status check error:', error);
+                }
+            });
+        }
+
         async function checkTransactionIdBM(trxid) {
             return new Promise((resolve, reject) => {
                 $.ajax({
@@ -571,53 +681,7 @@
             });
         }
 
-        function paymentVerification() {
-            let actionUrl = $('#payment_form').attr('action');
-
-            $.ajax({
-                url: actionUrl,
-                type: 'POST',
-                data: $('#payment_form').serialize(),
-                success: function(response) {
-                    // console.log(response);
-                    // console.log(123);
-
-
-
-                    if (response.success == false && response.message == 'No transaction found') {
-                        $(this).attr('disabled');
-                        toastr.error(response.message);
-                        $('#modal-message').html(response.message);
-                        setTimeout(function(e) {
-                            window.location.reload();
-                        }, 1000);
-
-                    } else if (response.success == false && response.message == 'Transaction Pending') {
-                        countPending++;
-                        if (countPending > 3) {
-                            window.location.href = response.url;
-                        }
-                        $('#modal-message').html(response.message);
-                    } else if (response.success == true && response.hasOwnProperty('url')) {
-                        $(this).attr('disabled');
-                        toastr.success(response.message);
-                        $('#modal-message').html(response.message);
-                        setTimeout(function(e) {
-                            window.location.href = response.url;
-                        }, 2000);
-                    } else if (response.success == false && response.message.includes('Transaction Already')) {
-                        $('#modal-message').html(response.message);
-                        canceledRequest(req_id);
-                    }
-
-                },
-                error: function(xhr, status, error) {
-                    console.log("XHR object:", xhr.responseText);
-                    console.log("Status:", status);
-                    console.log("Error:", error);
-                }
-            });
-        }
+        // Old paymentVerification function removed - now using checkTransactionStatus polling
 
         $(document).ready(function() {
             var timer = $('#timer');

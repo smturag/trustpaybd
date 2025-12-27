@@ -22,7 +22,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('app:delete-unverified-customers')->everyThirtyMinutes()->runInBackground();
         // $schedule->command('app:check-payment-request')->everyFiveSeconds()->runInBackground();
         $schedule->command('app:send-s-m-s-to-agent')->everyFiveSeconds()->runInBackground();
-        $schedule->command('app:bm-to-payment-check')->everyFiveSeconds()->runInBackground();
+        $schedule->command('app:bm-to-payment-check')->everyTwoSeconds()->runInBackground();
         $schedule->command('app:auto-assign-b-m-to-agent')->everyFiveSeconds()->runInBackground();
         $schedule->command('app:api-to-payment-check')->everyFiveSeconds()->runInBackground();
         $schedule->command('app:reject-payment-request')->everyFiveSeconds()->runInBackground();

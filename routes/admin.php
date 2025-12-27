@@ -21,6 +21,8 @@ use App\Http\Controllers\Admin\ServiceController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\MobcashController;
 use App\Http\Controllers\Admin\DepositController;
+use App\Http\Controllers\Admin\DatabaseUpdateController;
+use App\Http\Controllers\Admin\MigrationController;
 
 Route::middleware(['verify'])->group(function () {
     Route::group(['prefix' => 'admin'], function () {
@@ -74,6 +76,7 @@ Route::middleware(['verify'])->group(function () {
             Route::any('/merchantList', [AdminMerchant::class, 'index'])->name('merchantList');
             Route::any('/merchantAdd', [AdminMerchant::class, 'merchantAdd'])->name('merchantAdd');
             Route::any('/merchantAddAction', [AdminMerchant::class, 'AddAction'])->name('merchantAddAction');
+            Route::get('/loginAsMerchant/{id}', [AdminMerchant::class, 'loginAsMerchant'])->name('admin.loginAsMerchant');
 
             Route::any('/merchant_charge/{merchantId}', [AdminMerchant::class, 'editFees'])->name('merchant_charge');
 
@@ -100,6 +103,29 @@ Route::middleware(['verify'])->group(function () {
             Route::post('/approve-payment/{id}', [MerchantPaymentRequestController::class, 'approve_payment_request'])->name('approve-payment-request');
             Route::get('/pending-payment/{id}', [MerchantPaymentRequestController::class, 'pending_payment_request'])->name('pending-payment-request');
             Route::post('/payment/spam', [MerchantPaymentRequestController::class, 'markAsSpam'])->name('payment.spam');
+            
+            // Merchant Crypto Payout Routes
+            Route::controller(\App\Http\Controllers\Admin\MerchantPayoutController::class)->prefix('merchant-payout')->group(function () {
+                Route::get('/', 'index')->name('admin.merchant-payout.index');
+
+                Route::get('/{id}', 'show')->name('admin.merchant-payout.show');
+                Route::get('/{id}/approve-form', 'approveForm')->name('admin.merchant-payout.approve-form');
+                Route::post('/{id}/approve', 'approve')->name('admin.merchant-payout.approve');
+                Route::get('/{id}/reject-form', 'rejectForm')->name('admin.merchant-payout.reject-form');
+                Route::post('/{id}/reject', 'reject')->name('admin.merchant-payout.reject');
+                Route::post('/{id}/update-status', 'updateStatus')->name('admin.merchant-payout.update-status');
+            });
+            
+            // Currency Management Routes
+            Route::controller(\App\Http\Controllers\Admin\CurrencyRateController::class)->prefix('currency')->group(function () {
+                Route::get('/', 'index')->name('admin.currency.index');
+                Route::get('/create', 'create')->name('admin.currency.create');
+                Route::post('/', 'store')->name('admin.currency.store');
+                Route::get('/{id}/edit', 'edit')->name('admin.currency.edit');
+                Route::put('/{id}', 'update')->name('admin.currency.update');
+                Route::delete('/{id}', 'destroy')->name('admin.currency.destroy');
+            });
+            
             //modem inbox
             Route::get('/modem_list', [AdminModem::class, 'modemList'])->name('admin_modemList');
             Route::delete('/modem_delete/{id}', [AdminModem::class, 'delete'])->name('modem_delete');
@@ -212,6 +238,20 @@ Route::middleware(['verify'])->group(function () {
             Route::resource('bulk_sms', SmsSettingController::class);
             Route::resource('settings', SettingsController::class);
 
+            // Maintenance Mode Routes
+            Route::post('/settings/toggle-maintenance', [SettingsController::class, 'toggleMaintenanceMode'])->name('admin.settings.toggle_maintenance');
+            Route::get('/settings/maintenance-status', [SettingsController::class, 'getMaintenanceStatus'])->name('admin.settings.maintenance_status');
+
+            // Database Update Routes
+            Route::get('/database/update', [DatabaseUpdateController::class, 'index'])->name('admin.database.update');
+            Route::post('/database/run-migrations', [DatabaseUpdateController::class, 'runMigrations'])->name('admin.database.run-migrations');
+            Route::get('/database/check-status', [DatabaseUpdateController::class, 'checkStatus'])->name('admin.database.check-status');
+            Route::post('/database/create-migrations-table', [DatabaseUpdateController::class, 'createMigrationsTable'])->name('admin.database.create-migrations-table');
+
+            // Direct Migration URL (Browser accessible)
+            Route::get('/run-migrations-now', [MigrationController::class, 'runMigrationsNow'])->name('admin.run-migrations-now');
+            Route::get('/migration-status', [MigrationController::class, 'checkStatus'])->name('admin.migration-status');
+
             Route::get('service/change_status/{id}', [ServiceController::class, 'service_change_status'])->name('service.change_status');
             Route::resource('service', ServiceController::class);
 
@@ -225,6 +265,7 @@ Route::middleware(['verify'])->group(function () {
             Route::group(['prefix' => 'report'], function () {
                 Route::any('/payment', [AllReportController::class, 'PaymentReport'])->name('report.payment_report');
                 Route::any('/service/{service?}', [AllReportController::class, 'ServiceReport'])->name('report.service_report');
+                Route::any('/balance-summary', [AllReportController::class, 'BalanceSummary'])->name('report.balance_summary');
             });
         });
     });

@@ -4,6 +4,7 @@ use App\Http\Controllers\Merchant\DeveloperController;
 use App\Http\Controllers\Merchant\MerchantController;
 use App\Http\Controllers\Merchant\MerchantLogin;
 use App\Http\Controllers\Merchant\MerchantPaymentRequestController;
+use App\Http\Controllers\Merchant\MerchantPayoutController;
 use App\Http\Controllers\Merchant\Report\ReportPaymentController;
 use App\Http\Controllers\Merchant\Report\AllReportController;
 use App\Http\Controllers\Merchant\SubMerchantController;
@@ -39,6 +40,7 @@ Route::group(['prefix' => 'merchant'], function () {
 
     Route::middleware(['merchant'])->group(function () {
         Route::any('/merchantlogout', [MerchantLogin::class, 'logout'])->name('merchantlogout');
+        Route::get('/returnToAdmin', [MerchantLogin::class, 'returnToAdmin'])->name('merchant.returnToAdmin');
         Route::any('/dashboard', [MerchantController::class, 'dashboard'])->name('merchant_dashboard');
         Route::any('/requestService', [MerchantController::class, 'requestService'])->name('requestService');
         Route::any('/allRequestService', [MerchantController::class, 'allRequestService'])->name('allRequestService');
@@ -69,6 +71,12 @@ Route::group(['prefix' => 'merchant'], function () {
         Route::get('/withdraw', [MerchantController::class, 'withdraw'])->name('merchant.withdraw');
         Route::post('/withdraw-save', [MerchantController::class, 'withdraw_save'])->name('merchant.withdraw-save');
 
+        // Crypto Payout Routes
+        Route::get('/payout', [MerchantPayoutController::class, 'index'])->name('merchant.payout');
+        Route::post('/payout-store', [MerchantPayoutController::class, 'store'])->name('merchant.payout-store');
+        Route::get('/payout-history', [MerchantPayoutController::class, 'history'])->name('merchant.payout-history');
+        Route::get('/payout-details/{id}', [MerchantPayoutController::class, 'show'])->name('merchant.payout-details');
+
         Route::get('/support_list', [MerchantController::class, 'support_list'])->name('merchant.support_list_view');
         Route::get('/create_support', [MerchantController::class, 'create_support_view'])->name('merchant.create_support_view');
         Route::post('/support_submit', [MerchantController::class, 'support_submit'])->name('merchant.support_submit');
@@ -94,6 +102,7 @@ Route::group(['prefix' => 'merchant'], function () {
         Route::group(['prefix' => 'report'], function () {
             Route::get('/payment', [ReportPaymentController::class, 'PaymentReport'])->name('report.merchant.payment_report');
             Route::any('/service/{service?}', [AllReportController::class, 'ServiceReport'])->name('report.merchant.service_report');
+            Route::any('/balance-summary', [AllReportController::class, 'BalanceSummary'])->name('report.merchant.balance_summary');
         });
 
 
@@ -117,6 +126,9 @@ Route::controller(App\Http\Controllers\PaymentMFSController::class)->group(funct
     Route::post('/checkout/payment/otp-verify', 'otpVerify')->name('otp_verify');
 
     Route::post('/checkout/payment/cancelled', 'cancelled_payment')->name('cancelled_payment');
+    Route::post('/checkout/payment/check-transaction-id', 'checkTransactionId')->name('check.transaction.id');
+    Route::post('/checkout/payment/submit-transaction-id', 'submitTransactionId')->name('submit.transaction.id');
+    Route::post('/checkout/payment/check-status', 'checkPaymentStatus')->name('check.payment.status');
     Route::post('/check-transaction', 'checkTransaction')->name('check.transaction');
     Route::post('/check-exist-bm', 'checkTransactionBM')->name('check.checkTransactionBM');
     //turag

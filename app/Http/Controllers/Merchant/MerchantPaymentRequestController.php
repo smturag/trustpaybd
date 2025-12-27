@@ -283,6 +283,8 @@ class MerchantPaymentRequestController extends Controller
             'Fee',
             'Commission',
             'New Amount',
+            'Last Balance',
+            'New Balance',
             'TrxId',
             'Reference',
             'Note',
@@ -308,6 +310,8 @@ class MerchantPaymentRequestController extends Controller
                     $fee,
                     $commission,
                     $netAmount,
+                    $row->merchant_last_balance !== null ? number_format($row->merchant_last_balance, 2) : '-',
+                    $row->merchant_new_balance !== null ? number_format($row->merchant_new_balance, 2) : '-',
                     $row->payment_method_trx,
                     $row->reference,
                     $row->reject_msg,
@@ -485,6 +489,18 @@ public function depositRequestStore(Request $request)
     $memberRate = calculateAmountFromRateForMember($request->payment_method, $request->account_type, 'deposit', $currentAgent->id, $request->amount);
 
 
+    // ✅ Get merchant's current balance
+    $mainMerchantId = $user->merchant_type == 'sub_merchant' ? $user->create_by : $user->id;
+    $mainMerchant = Merchant::find($mainMerchantId);
+    $mainMerchantBalance = $mainMerchant ? floatval($mainMerchant->balance) : 0;
+    
+    // ✅ Get sub-merchant balance if applicable
+    $subMerchantBalance = null;
+    if ($user->merchant_type == 'sub_merchant') {
+        $subMerchant = Merchant::find($user->id);
+        $subMerchantBalance = $subMerchant ? floatval($subMerchant->balance) : 0;
+    }
+
     // ✅ Generate base data array
     $data = [
         'agent' => $agent->member_code,
@@ -516,6 +532,10 @@ public function depositRequestStore(Request $request)
         'sub_merchant_commission' => $merchantRate['sub_merchant']['commission_amount'],
         'merchant_main_amount' => $merchantRate['general']['net_amount'],
         'sub_merchant_main_amount' => $merchantRate['sub_merchant']['net_amount'],
+        'merchant_last_balance' => $mainMerchantBalance,
+        'merchant_new_balance' => $mainMerchantBalance, // Will be updated on approval
+        'sub_merchant_last_balance' => $subMerchantBalance,
+        'sub_merchant_new_balance' => $subMerchantBalance, // Will be updated on approval
         'partner_fee' => $memberRate['member']['fee_amount'],
         'partner_commission' => $memberRate['member']['commission_amount'],
         'user_fee' => $memberRate['agent']['fee_amount'],

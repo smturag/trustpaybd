@@ -114,6 +114,248 @@ class PaymentMFSController extends Controller
     }
 
     /**
+     * Check if transaction ID already exists in payment_requests
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function checkTransactionId(Request $request)
+    {
+        $request->validate([
+            'trxid' => 'required|string|min:5',
+            'request_id' => 'required|string|min:20',
+        ]);
+
+        // Verify request_id exists and is valid
+        $currentRequest = PaymentRequest::where('request_id', $request->request_id)->first();
+        
+        if (!$currentRequest) {
+            return response()->json([
+                'success' => false,
+                'exists' => false,
+                'message' => 'Invalid payment request.',
+            ]);
+        }
+
+        // Check if this transaction ID exists with status 0, 1, or 2
+        $existingTransaction = PaymentRequest::whereRaw('LOWER(payment_method_trx) = ?', [strtolower($request->trxid)])
+            ->whereIn('status', [0, 1, 2])
+            ->first();
+
+        if ($existingTransaction) {
+            // Log potential duplicate attempt
+            Log::info('Transaction ID check', [
+                'trxid' => $request->trxid,
+                'existing_request_id' => $existingTransaction->request_id,
+                'checking_request_id' => $request->request_id,
+                'existing_status' => $existingTransaction->status,
+                'is_same_request' => $existingTransaction->request_id === $request->request_id,
+            ]);
+            
+            // Check if it's the same request
+            if ($existingTransaction->request_id === $request->request_id) {
+                // Same request - check status
+                if ($existingTransaction->status == 1 || $existingTransaction->status == 2) {
+                    return response()->json([
+                        'success' => false,
+                        'exists' => true,
+                        'status' => 'completed',
+                        'message' => 'This transaction has already been completed successfully.',
+                    ]);
+                } else {
+                    // Status 0 - pending, can update
+                    return response()->json([
+                        'success' => true,
+                        'exists' => true,
+                        'status' => 'pending',
+                        'can_update' => true,
+                        'message' => 'Transaction is pending. You can proceed.',
+                    ]);
+                }
+            } else {
+                // Different request - BLOCK THIS
+                return response()->json([
+                    'success' => false,
+                    'exists' => true,
+                    'status' => $existingTransaction->status == 0 ? 'pending_other' : 'completed',
+                    'message' => 'This transaction ID is already used in another request.',
+                ]);
+            }
+        }
+
+        // Transaction ID doesn't exist, can proceed
+        return response()->json([
+            'success' => true,
+            'exists' => false,
+            'message' => 'Transaction ID is available.',
+        ]);
+    }
+
+    /**
+     * Submit transaction ID and update database immediately
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function submitTransactionId(Request $request)
+    {
+        $validated = $this->validate($request, [
+            'sim_id' => 'required',
+            'trxid' => 'required|string|min:5',
+            'request_id' => 'required|string|min:20',
+            'payment_method' => 'required|string',
+            'type' => 'required|string',
+        ]);
+
+        // Get current request details
+        $paymentRequest = PaymentRequest::where('request_id', $request->request_id)->first();
+        
+        if (!$paymentRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid payment request',
+            ]);
+        }
+
+        // CRITICAL: Check if transaction ID already exists in OTHER requests
+        $existingTransaction = PaymentRequest::whereRaw('LOWER(payment_method_trx) = ?', [strtolower($request->trxid)])
+            ->whereIn('status', [0, 1, 2, 3])
+            ->where('request_id', '!=', $request->request_id)
+            ->first();
+
+        if ($existingTransaction) {
+            Log::warning('Duplicate transaction ID blocked on submit', [
+                'trxid' => $request->trxid,
+                'existing_request_id' => $existingTransaction->request_id,
+                'attempted_request_id' => $request->request_id,
+                'ip_address' => $request->ip(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'This transaction ID is already used in another request.',
+            ]);
+        }
+
+        // Get agent info
+        $agent = DB::table('modems')->where('sim_number', $request->sim_id)->first();
+        
+        if (!$agent) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to find agent information. Contact admin.',
+            ]);
+        }
+
+        // Update payment_method_trx immediately
+        try {
+            $paymentRequest->update([
+                'sim_id' => $request->sim_id,
+                'payment_method_trx' => $request->trxid,
+                'payment_method' => $request->payment_method,
+                'agent' => $agent->member_code,
+                'partner' => getPartnerFromAgent($agent->member_code)->member_code,
+                'status' => 0, // Set to pending
+                'updated_at' => now(),
+            ]);
+
+            Log::info('Transaction ID submitted successfully', [
+                'request_id' => $request->request_id,
+                'trxid' => $request->trxid,
+                'status' => 0,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction ID submitted. Checking status...',
+                'request_id' => $request->request_id,
+            ]);
+        } catch (Exception $e) {
+            Log::error('Failed to submit transaction ID', [
+                'request_id' => $request->request_id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit transaction ID. Please try again.',
+            ]);
+        }
+    }
+
+    /**
+     * Check payment status for polling
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function checkPaymentStatus(Request $request)
+    {
+        $validated = $this->validate($request, [
+            'request_id' => 'required|string|min:20',
+        ]);
+
+        $paymentRequest = PaymentRequest::where('request_id', $request->request_id)->first();
+        
+        if (!$paymentRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment request not found',
+            ]);
+        }
+
+        // Check status
+        if ($paymentRequest->status == 1 || $paymentRequest->status == 2) {
+            // Success - status 1 or 2
+            $responseArray = [
+                'payment' => 'success',
+                'payment_method' => $paymentRequest->payment_method,
+                'request_id' => $paymentRequest->request_id,
+                'reference' => $paymentRequest->reference,
+                'sim_id' => $paymentRequest->sim_id,
+                'trxid' => $paymentRequest->payment_method_trx,
+                'amount' => $paymentRequest->amount,
+            ];
+            $queryString = http_build_query($responseArray);
+            $url = $paymentRequest->callback_url . '/?' . $queryString;
+
+            // Trigger webhook
+            merchantWebHook($paymentRequest->reference);
+
+            return response()->json([
+                'success' => true,
+                'status' => 'completed',
+                'message' => 'Transaction completed successfully!',
+                'url' => $url,
+            ]);
+        } elseif ($paymentRequest->status == 3) {
+            // Rejected - status 3
+            $responseArray = [
+                'payment' => 'rejected',
+                'payment_method' => $paymentRequest->payment_method,
+                'request_id' => $paymentRequest->request_id,
+                'reference' => $paymentRequest->reference,
+                'sim_id' => $paymentRequest->sim_id,
+                'trxid' => $paymentRequest->payment_method_trx,
+                'amount' => $paymentRequest->amount,
+            ];
+            $queryString = http_build_query($responseArray);
+            $url = $paymentRequest->callback_url . '/?' . $queryString;
+
+            return response()->json([
+                'success' => false,
+                'status' => 'rejected',
+                'message' => 'Transaction was rejected. ' . ($paymentRequest->reject_msg ?: ''),
+                'url' => $url,
+            ]);
+        } else {
+            // Still pending - status 0
+            return response()->json([
+                'success' => false,
+                'status' => 'pending',
+                'message' => 'Transaction is still pending...',
+            ]);
+        }
+    }
+
+    /**
      * @param Request $request
      * @return JsonResponse|void
      * @throws ValidationException
@@ -128,6 +370,68 @@ class PaymentMFSController extends Controller
             'payment_method' => 'required|string',
             'type' => 'required|string',
         ]);
+
+        // Get current request details for validation
+        $currentRequest = PaymentRequest::where('request_id', $request->request_id)->first();
+        
+        if (!$currentRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid payment request',
+            ]);
+        }
+
+        // CRITICAL: Check if transaction ID already exists with status 0, 1, or 2
+        $existingTransaction = PaymentRequest::whereRaw('LOWER(payment_method_trx) = ?', [strtolower($request->trxid)])
+            ->whereIn('status', [0, 1, 2])
+            ->where('request_id', '!=', $request->request_id) // Different request
+            ->first();
+
+        if ($existingTransaction) {
+            Log::warning('Duplicate transaction ID attempt blocked', [
+                'trxid' => $request->trxid,
+                'existing_request_id' => $existingTransaction->request_id,
+                'attempted_request_id' => $request->request_id,
+                'existing_status' => $existingTransaction->status,
+                'ip_address' => $request->ip(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'This transaction ID is already used in another request. Please use a different transaction ID.',
+            ]);
+        }
+
+        // Check if transaction ID already exists with completed status (1 or 2) for SAME request
+        $existingCompleted = PaymentRequest::whereRaw('LOWER(payment_method_trx) = ?', [strtolower($request->trxid)])
+            ->whereIn('status', [1, 2])
+            ->where('request_id', $request->request_id)
+            ->first();
+
+        if ($existingCompleted) {
+            // Trigger callback for already completed transaction
+            $responseArray = [
+                'payment' => 'success',
+                'payment_method' => $existingCompleted->payment_method,
+                'request_id' => $existingCompleted->request_id,
+                'reference' => $existingCompleted->reference,
+                'sim_id' => $existingCompleted->sim_id,
+                'trxid' => $existingCompleted->payment_method_trx,
+                'amount' => $existingCompleted->amount,
+            ];
+            $queryString = http_build_query($responseArray);
+            $url = $existingCompleted->callback_url . '/?' . $queryString;
+
+            // Also trigger webhook
+            merchantWebHook($existingCompleted->reference);
+            
+            return response()->json([
+                'success' => true,
+                'already_completed' => true,
+                'message' => 'Transaction Already Completed',
+                'url' => $url,
+            ]);
+        }
 
         $approveCheck = PaymentRequest::with(['merchant', 'agent', 'dso', 'partner'])
             ->whereRaw('LOWER(payment_method_trx) = ?', [strtolower($request->trxid)])
@@ -197,38 +501,33 @@ class PaymentMFSController extends Controller
             ]);
         }
 
-        // Check if payment request with same TRX ID exist or NOT
+        // Check if payment request with same TRX ID exist or NOT (for update scenario)
         $exists_data = PaymentRequest::with(['merchant', 'agent', 'dso', 'partner'])
             ->whereRaw('LOWER(payment_method_trx) = ?', [strtolower($request->trxid)])
-            ->where('payment_method', $request->payment_method)
-            ->where('amount', $request->amount)
+            ->where('request_id', $request->request_id) // Only check for SAME request
             ->first();
 
         if ($exists_data != null) {
-            // If exists then use that existing one from now on instead of the given request_id
+            // Transaction ID already set for this request - this is an update
             $paymentRequest = $exists_data;
-
-            // Change the request id in data so it uses the existing req id instead of the new one
             $data['request_id'] = $paymentRequest->request_id;
             $data['sim_id'] = $paymentRequest->sim_id;
             $data['trxid'] = $paymentRequest->payment_method_trx;
             $data['payment_method'] = $paymentRequest->payment_method;
             $data['amount'] = $paymentRequest->amount;
-
-            // Match the phone number of the user to make sure that he's the real person making this request
-            $currentData = PaymentRequest::where('request_id', $data['request_id'])->first();
-            if ($paymentRequest->cust_phone != $currentData->cust_phone) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Duplicate transaction ID',
-                ]);
-            }
         } else {
-            // If doesn't exist then use the new request_id to find the new request
+            // New transaction ID for this request
             $paymentRequest = PaymentRequest::with(['merchant', 'agent', 'dso', 'partner'])
                 ->where('request_id', $data['request_id'])
                 ->where('payment_method', $request->payment_method)
                 ->first();
+                
+            if (!$paymentRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment request not found',
+                ]);
+            }
         }
 
         // Check if the provided agent actually exists

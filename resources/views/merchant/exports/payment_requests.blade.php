@@ -24,9 +24,9 @@
             <th>Fee</th>
             <th>Commission</th>
             <th>New Amount</th>
+            <th>Balance Change</th>
             <th>TrxId</th>
             <th>Reference</th>
-            <th>Note</th>
             <th>Created At</th>
             <th>Status</th>
         </tr>
@@ -46,9 +46,12 @@
                 <td>{{ $fee }}</td>
                 <td>{{ $commission }}</td>
                 <td>{{ $netAmount }}</td>
+                <td>
+                    {{ $row->merchant_last_balance !== null ? number_format($row->merchant_last_balance, 2) : '-' }} → 
+                    {{ $row->merchant_new_balance !== null ? number_format($row->merchant_new_balance, 2) : '-' }}
+                </td>
                 <td>{{ $row->payment_method_trx }}</td>
                 <td>{{ $row->reference }}</td>
-                <td>{{ $row->reject_msg }}</td>
                 <td>{{ optional($row->created_at)->format('Y-m-d H:i:s') }}</td>
                 <td>
                     @if ($row->status == 0)

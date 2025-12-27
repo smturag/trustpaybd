@@ -2,21 +2,14 @@
     <thead>
         <tr class="text-center">
             <th scope="col" class="text-center">#</th>
-            {{-- <th scope="col">Merchant</th> --}}
-            <th scope="col">Number</th>
             <th scope="col">Method</th>
-            {{-- <th scope="col">Type</th> --}}
-            <th scope="col">Old Balance</th>
             <th scope="col">Amount</th>
-            <th scope="col">Fee</th>
-            <th scope="col">Commission</th>
+            <th scope="col">Fee / Comm</th>
             <th scope="col">Main Balance</th>
-            <th scope="col">New Balance</th>
-            <!--<th scope="col" class="text-center">TrxId </th>-->
+            <th scope="col">Balance Change</th>
             <th scope="col">TrxId</th>
             <th scope="col">Date</th>
             <th scope="col">Status</th>
-            {{-- <th scope="col" class="text-center">Action</th> --}}
         </tr>
     </thead>
     <tbody>
@@ -52,31 +45,30 @@
 
             <tr id="{{ $row->id }}">
                 <td class="text-center">{{ ++$key }}</td>
-                <td class="text-center">{{ $row->number }}</td>
-                <td class="text-center">{{ $row->mfs }} <br> {{ $row->sim_number }} </td>
+                <td class="text-center">{{ $row->mfs }} <br> {{ $row->sim_number }} <br> <small class="text-muted">{{ $row->number }}</small> </td>
 
-
-                <!--<td class="text-center">{{ fake()->randomElement(['cashin', 'cashout', 'send money']) }}</td>-->
-                {{-- <td class="text-center">{{$subMerchantName}} <br> {{ $make_method }}</td> --}}
-
-                <td class="text-center">{{ $row->old_balance }}</td>
                 <td class="text-center">{{ $row->amount }}</td>
                 @if (auth('merchant')->user()->merchant_type == 'general')
-                    <td class="text-center">{{ $row->merchant_fee }} </td>
-                    <td class="text-center">{{ $row->merchant_commission }} </td>
+                    <td class="text-center">
+                        <span class="badge bg-danger">{{ number_format($row->merchant_fee, 2) }}</span> /
+                        <span class="badge bg-success">{{ number_format($row->merchant_commission, 2) }}</span>
+                    </td>
                     <td class="text-center">{{ $row->merchant_main_amount }} </td>
                 @elseif(auth('merchant')->user()->merchant_type == 'sub_merchant')
-                    <td class="text-center">{{ $row->sub_merchant_fee }} </td>
-                    <td class="text-center">{{ $row->sub_merchant_fee }} </td>
+                    <td class="text-center">
+                        <span class="badge bg-danger">{{ number_format($row->sub_merchant_fee, 2) }}</span> /
+                        <span class="badge bg-success">{{ number_format($row->sub_merchant_commission, 2) }}</span>
+                    </td>
                     <td class="text-center">{{ $row->sub_merchant_main_amount }} </td>
                 @endif
-                <td class="text-center">{{ $row->new_balance }}</td>
-                <!--<td>-->
-                <!--    <span class="text-success">{{ $row->trxid }} </span>-->
-
-                <!--</td>-->
+                <td class="text-center">
+                    <span class="badge bg-secondary">{{ $row->old_balance }}</span>
+                    <i class="bx bx-right-arrow-alt"></i>
+                    <span class="badge bg-success">{{ $row->new_balance }}</span>
+                </td>
                 <td style="width: 150px; word-wrap: break-word; white-space: normal;">
-                    {{ $row->get_trxid }}
+                    {{ $row->get_trxid }} <br>
+                    <small class="text-muted">SIM: {{ $row->sim_number }}</small>
                 </td>
 
                 <td class="text-center">

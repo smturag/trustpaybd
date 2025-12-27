@@ -8,6 +8,8 @@ use App\Models\PaymentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\ServiceRequest;
+use App\Models\MerchantPayoutRequest;
+use App\Models\Merchant;
 use Illuminate\Support\Facades\Auth;
 
 class AllReportController extends Controller
@@ -62,6 +64,7 @@ public function ServiceReport(Request $request, $service ='deposit')
 {
     $merchantId = Auth::guard('merchant')->user()->id;
     $method     = $request->input('method');
+    $paymentType = $request->input('payment_type');
     $startDate  = $request->input('start_date');
     $endDate    = $request->input('end_date');
     $startTime  = $request->input('start_time');
@@ -76,6 +79,10 @@ public function ServiceReport(Request $request, $service ='deposit')
             $query->where('merchant_id', $merchantId);
         }
 
+        if ($paymentType && $paymentType !== 'All') {
+            $query->where('payment_type', $paymentType);
+        }
+
         if ($startDate || $endDate) {
             $startDateTime = $startDate ? $startDate : now()->toDateString();
             $endDateTime   = $endDate   ? $endDate   : now()->toDateString();
@@ -88,20 +95,32 @@ public function ServiceReport(Request $request, $service ='deposit')
 
         if (!$method || $method === 'All Method') {
             $results = $query
-                ->select('payment_method', \DB::raw('SUM(amount) as total_amount'))
+                ->select('payment_method', 
+                    \DB::raw('SUM(amount) as total_amount'),
+                    \DB::raw('SUM(merchant_fee) as total_fee'),
+                    \DB::raw('SUM(merchant_commission) as total_commission'))
                 ->groupBy('payment_method')
                 ->orderBy('payment_method')
                 ->get();
         } else {
             $results = $query
                 ->where('payment_method', $method)
-                ->select('payment_method', \DB::raw('SUM(amount) as total_amount'))
+                ->select('payment_method', 
+                    \DB::raw('SUM(amount) as total_amount'),
+                    \DB::raw('SUM(merchant_fee) as total_fee'),
+                    \DB::raw('SUM(merchant_commission) as total_commission'))
                 ->groupBy('payment_method')
                 ->orderBy('payment_method')
                 ->get();
         }
 
         $methods = PaymentRequest::select('payment_method')->distinct()->pluck('payment_method');
+        
+        // Get first and last transaction dates for display
+        $dateRange = PaymentRequest::whereIn('status', [1, 2])
+            ->where('merchant_id', $merchantId)
+            ->selectRaw('MIN(created_at) as first_date, MAX(created_at) as last_date')
+            ->first();
 
     } elseif ($service == 'withdraw') {
         $query = ServiceRequest::whereIn('status', [3, 2]);
@@ -136,17 +155,143 @@ public function ServiceReport(Request $request, $service ='deposit')
         }
 
         $methods = ServiceRequest::select('mfs')->distinct()->pluck('mfs');
+        
+        // Get first and last transaction dates for display
+        $dateRange = ServiceRequest::whereIn('status', [3, 2])
+            ->where('merchant_id', $merchantId)
+            ->selectRaw('MIN(created_at) as first_date, MAX(created_at) as last_date')
+            ->first();
+
     } else {
         // Optional: redirect or 404 if no valid service
         $methods = collect();
+        $dateRange = null;
     }
 
     return view('merchant.reports.service_report.index', [
         'service' => $service,
         'methods' => $methods,
-        'results' => $results->toArray()
+        'results' => $results->toArray(),
+        'dateRange' => $dateRange
     ]);
 }
 
+/**
+ * Balance Summary Report - Shows comprehensive balance overview
+ */
+public function BalanceSummary(Request $request)
+{
+    $merchantId = Auth::guard('merchant')->user()->id;
+    $merchant = Merchant::findOrFail($merchantId);
+    
+    $startDate = $request->input('start_date');
+    $endDate = $request->input('end_date');
+    $startTime = $request->input('start_time', '00:00:00');
+    $endTime = $request->input('end_time', '23:59:59');
+
+    // Build date range for queries
+    $dateFilter = function($query) use ($startDate, $endDate, $startTime, $endTime) {
+        if ($startDate || $endDate) {
+            $start = ($startDate ?: now()->toDateString()) . ' ' . $startTime;
+            $end = ($endDate ?: now()->toDateString()) . ' ' . $endTime;
+            $query->whereBetween('created_at', [$start, $end]);
+        }
+    };
+
+    // 1. Deposit Summary (Approved deposits)
+    $depositQuery = PaymentRequest::where('merchant_id', $merchantId)
+        ->whereIn('status', [1, 2]);
+    $dateFilter($depositQuery);
+    
+    $depositStats = $depositQuery
+        ->selectRaw('COUNT(*) as total_count,
+                     SUM(amount) as total_amount,
+                     SUM(merchant_fee) as total_fee,
+                     SUM(merchant_commission) as total_commission')
+        ->first();
+
+    // 2. Withdraw Summary (Approved withdraws)
+    $withdrawQuery = ServiceRequest::where('merchant_id', $merchantId)
+        ->whereIn('status', [2, 3]);
+    $dateFilter($withdrawQuery);
+    
+    $withdrawStats = $withdrawQuery
+        ->selectRaw('COUNT(*) as total_count,
+                     SUM(amount) as total_amount')
+        ->first();
+    
+    // Add total_fee as 0 since service_requests table doesn't have fee column
+    $withdrawStats->total_fee = 0;
+
+    // 3. Payout Summary (All payout statuses)
+    $payoutQuery = MerchantPayoutRequest::where('merchant_id', $merchantId);
+    $dateFilter($payoutQuery);
+    
+    $payoutStats = $payoutQuery
+        ->selectRaw('COUNT(*) as total_count,
+                     SUM(amount) as total_amount,
+                     SUM(fee) as total_fee,
+                     SUM(CASE WHEN status = 0 THEN amount ELSE 0 END) as pending_amount,
+                     SUM(CASE WHEN status = 4 THEN amount ELSE 0 END) as approved_amount,
+                     SUM(CASE WHEN status = 3 THEN amount ELSE 0 END) as rejected_amount')
+        ->first();
+
+    // 4. Calculate net amounts
+    $depositNet = ($depositStats->total_amount ?? 0) - ($depositStats->total_fee ?? 0) + ($depositStats->total_commission ?? 0);
+    $withdrawNet = ($withdrawStats->total_amount ?? 0); // No fees for withdrawals
+    $payoutNet = ($payoutStats->approved_amount ?? 0) + ($payoutStats->total_fee ?? 0);
+
+    // 5. Calculate expected balance
+    $expectedBalance = $depositNet - $withdrawNet - $payoutNet;
+
+    // 6. Get payment method breakdown for deposits
+    $depositByMethod = PaymentRequest::where('merchant_id', $merchantId)
+        ->whereIn('status', [1, 2])
+        ->when($startDate || $endDate, function($q) use ($dateFilter) {
+            $dateFilter($q);
+        })
+        ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total')
+        ->groupBy('payment_method')
+        ->get();
+
+    // 7. Get withdraw method breakdown
+    $withdrawByMethod = ServiceRequest::where('merchant_id', $merchantId)
+        ->whereIn('status', [2, 3])
+        ->when($startDate || $endDate, function($q) use ($dateFilter) {
+            $dateFilter($q);
+        })
+        ->selectRaw('mfs as payment_method, COUNT(*) as count, SUM(amount) as total')
+        ->groupBy('mfs')
+        ->get();
+
+    // 8. Get payout currency breakdown
+    $payoutByCurrency = MerchantPayoutRequest::where('merchant_id', $merchantId)
+        ->when($startDate || $endDate, function($q) use ($dateFilter) {
+            $dateFilter($q);
+        })
+        ->selectRaw('merchant_currency, 
+                     COUNT(*) as count, 
+                     SUM(amount) as total_bdt,
+                     SUM(merchant_amount) as total_currency,
+                     status')
+        ->groupBy('merchant_currency', 'status')
+        ->get();
+
+    return view('merchant.reports.balance_summary.index', compact(
+        'merchant',
+        'depositStats',
+        'withdrawStats',
+        'payoutStats',
+        'depositNet',
+        'withdrawNet',
+        'payoutNet',
+        'expectedBalance',
+        'depositByMethod',
+        'withdrawByMethod',
+        'payoutByCurrency',
+        'startDate',
+        'endDate'
+    ));
+}
 
 }

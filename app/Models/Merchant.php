@@ -27,6 +27,26 @@ class Merchant extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
+    /**
+     * Get merchant's preferred currency relation
+     */
+    public function preferredCurrency()
+    {
+        return $this->hasOne(CurrencyRate::class, 'currency_code', 'preferred_currency');
+    }
+
+    /**
+     * Get merchant's balance in their preferred currency
+     */
+    public function getBalanceInPreferredCurrency()
+    {
+        if ($this->preferred_currency === 'BDT') {
+            return $this->balance;
+        }
+
+        return CurrencyRate::convertFromBDT($this->balance, $this->preferred_currency);
+    }
+
 
     public function merchantService(){
         $this->hasMany(MerchantService::class,'merchant_id','id');

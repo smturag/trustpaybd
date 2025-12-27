@@ -248,6 +248,22 @@ class iBotController extends Controller
                 'user_agent' => $request->userAgent(),
                 'status' => 4,
             ];
+            
+            // Capture merchant balances
+            $mainMerchantId = $merchant_type === 'sub_merchant' ? $this->merchant->create_by : $this->merchant->id;
+            $mainMerchant = Merchant::find($mainMerchantId);
+            if ($mainMerchant) {
+                $data['merchant_last_balance'] = $mainMerchant->balance;
+                $data['merchant_new_balance'] = $mainMerchant->balance;
+            }
+            
+            if ($merchant_type === 'sub_merchant') {
+                $subMerchant = Merchant::find($this->merchant->id);
+                if ($subMerchant) {
+                    $data['sub_merchant_last_balance'] = $subMerchant->balance;
+                    $data['sub_merchant_new_balance'] = $subMerchant->balance;
+                }
+            }
 
             if ($request->has('checkout_items')) {
                 $data['checkout_items'] = json_encode($request->checkout_items);
@@ -353,6 +369,22 @@ class iBotController extends Controller
         }
         if ($request->has('ext_field_2')) {
             $data['ext_field_2'] = json_encode($request->ext_field_2);
+        }
+
+        // Track balance before transaction
+        $mainMerchantId = $merchant_type === 'sub_merchant' ? $this->merchant->create_by : $this->merchant->id;
+        $mainMerchant = Merchant::find($mainMerchantId);
+        if ($mainMerchant) {
+            $data['merchant_last_balance'] = $mainMerchant->balance;
+            $data['merchant_new_balance'] = $mainMerchant->balance; // Will be updated on approval
+        }
+
+        if ($merchant_type === 'sub_merchant') {
+            $subMerchant = Merchant::find($this->merchant->id);
+            if ($subMerchant) {
+                $data['sub_merchant_last_balance'] = $subMerchant->balance;
+                $data['sub_merchant_new_balance'] = $subMerchant->balance; // Will be updated on approval
+            }
         }
 
         $check = PaymentRequest::create($data);

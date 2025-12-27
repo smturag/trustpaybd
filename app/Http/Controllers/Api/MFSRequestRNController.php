@@ -297,6 +297,16 @@ class MFSRequestRNController extends Controller
 
     public function data_submitted(Request $request)
     {
+
+
+         Log::info('Data Submitted Request', [
+        'ip' => $request->ip(),
+        'url' => $request->fullUrl(),
+        'method' => $request->method(),
+        'headers' => $request->headers->all(),
+        'payload' => $request->all(),
+    ]);
+    
         // Basic validation without DB exists rule
         $validator = Validator::make($request->all(), [
             'id' => 'required', // Accept string, integer, or float

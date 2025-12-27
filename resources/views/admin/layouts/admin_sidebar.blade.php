@@ -18,14 +18,14 @@
 
     <ul class="metismenu" id="menu">
         <li>
-            <a href="{{ route('admin_dashboard') }}">
+            <a href="{{ route('admin_dashboard') }}" data-title="Dashboard">
                 <div class="parent-icon"><i class='bx bx-home-alt'></i></div>
                 <div class="menu-title">Dashboard</div>
             </a>
         </li>
 
          <li>
-        <a href="{{route('deposit')}}">
+        <a href="{{route('deposit')}}" data-title="Deposit">
             <div class="parent-icon"><i class='fadeIn animated bx bx-outline'></i></div>
             <div class="menu-title">Deposit <span
                         class="badge bg-danger rounded-pill ms-auto right">{{ App\Models\PaymentRequest::where('status', 0)->whereNotNull('payment_method')->count() }}</span> </div>
@@ -45,7 +45,7 @@
         --}}
 
         <li>
-        <a class="has-arrow" href="javascript:;">
+        <a class="has-arrow" href="javascript:;" data-title="Withdraw">
             <div class="parent-icon"><i class="fadeIn animated bx bx-mobile-alt"></i>
             </div>
             <div class="menu-title">Withdraw
@@ -85,7 +85,39 @@
         </ul>
     </li>
 
-        <li>
+    <li>
+        <a class="has-arrow" href="javascript:;" data-title="Crypto Payout">
+            <div class="parent-icon"><i class="bx bxl-bitcoin"></i></div>
+            <div class="menu-title">Crypto Payout
+                @php
+                    $pendingPayouts = App\Models\MerchantPayoutRequest::where('status', 0)->count();
+                @endphp
+                @if($pendingPayouts > 0)
+                    <span class="badge bg-danger rounded-pill ms-auto right">{{ $pendingPayouts }}</span>
+                @endif
+            </div>
+        </a>
+        <ul>
+            <li><a href="{{ route('admin.merchant-payout.index') }}"><i class='bx bx-radio-circle'></i>All Requests</a></li>
+            <li><a href="{{ route('admin.merchant-payout.index', ['status' => 0]) }}"><i class='bx bx-radio-circle'></i>Pending
+                @if($pendingPayouts > 0)
+                    <span class="badge bg-warning rounded-pill ms-auto right">{{ $pendingPayouts }}</span>
+                @endif
+            </a></li>
+            <li><a href="{{ route('admin.merchant-payout.index', ['status' => 4]) }}"><i class='bx bx-radio-circle'></i>Completed</a></li>
+            <li><a href="{{ route('admin.merchant-payout.index', ['status' => 3]) }}"><i class='bx bx-radio-circle'></i>Rejected</a></li>
+
+        </ul>
+    </li>
+
+    <li>
+        <a href="{{ route('admin.currency.index') }}" data-title="Currency Management">
+            <div class="parent-icon"><i class="bx bx-money"></i></div>
+            <div class="menu-title">Currency Management</div>
+        </a>
+    </li>
+
+    <li>
         <a class="has-arrow" href="javascript:;">
             <div class="parent-icon"><i class="bx bx-line-chart"></i>
             </div>
@@ -282,6 +314,7 @@
                     System</a></li>
             <li><a href="{{ route('mfs.index') }}"><i class="bx bx-radio-circle"></i>MFS Operator</a></li>
             <li><a href="{{ route('settings.index') }}"><i class="bx bx-radio-circle"></i>App Settings</a></li>
+            <li><a href="{{ route('admin.database.update') }}"><i class="bx bx-data"></i>Database Update</a></li>
            
             
             {{-- <li>
@@ -316,6 +349,11 @@
 
         <ul class="mm-collapse">
             <li><a href="{{ route('report.service_report') }}"><i class="bx bx-radio-circle"></i>Service Report</a>
+            </li>
+        </ul>
+
+        <ul class="mm-collapse">
+            <li><a href="{{ route('report.balance_summary') }}"><i class="bx bx-radio-circle"></i>Balance Summary</a>
             </li>
         </ul>
 

@@ -37,7 +37,7 @@
                     <select name="status" class="form-select">
                         <option value="">All</option>
                         <option value="pending">Pending</option>
-                        <option value="1">Success</option>
+                        <option value="success">Success</option>
                         <option value="3">Rejected</option>
                     </select>
                 </div>
@@ -65,6 +65,16 @@
                         <option value="bkash">bKash</option>
                         <option value="16216">Rocket</option>
                         <option value="upay">upay</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">Payment Type</label>
+                    <select class="form-select" name="payment_type">
+                        <option value="">All</option>
+                        <option value="P2A">P2A - Cash Out</option>
+                        <option value="P2P">P2P - Send Money</option>
+                        <option value="P2C">P2C - Payment</option>
                     </select>
                 </div>
 
@@ -107,10 +117,8 @@
                             <th>Method</th>
                             <th>MFS Method/Trx</th>
                             <th>Amount</th>
-                            <th>Fee</th>
-                            <th>Commission</th>
-                            <th>From</th>
-                            <th>Note</th>
+                            <th>Fee / Comm</th>
+                            <th>Balance Change</th>
                             <th>Date</th>
                             <th>Status</th>
                             <th>Action</th>
@@ -148,6 +156,7 @@
                             <tr><th>Amount</th><td id="detail_amount"></td></tr>
                             <tr><th>Fee</th><td id="detail_fee"></td></tr>
                             <tr><th>Commission</th><td id="detail_commission"></td></tr>
+                            <tr><th>Balance Change</th><td id="detail_balance_change"></td></tr>
                             <tr><th>From Number</th><td id="detail_from_number"></td></tr>
                             <tr><th>Note</th><td id="detail_note"></td></tr>
                             <tr><th>Status</th><td id="detail_status"></td></tr>
@@ -205,13 +214,38 @@
           </div>
           <div class="modal-body">
             <input type="hidden" name="payment_id" id="spam_payment_id">
+            
+            <div class="alert alert-info">
+                <i class="bx bx-info-circle"></i>
+                <strong>Note:</strong> Fees and commissions will be automatically calculated based on the merchant's configured rates for the selected MFS operator.
+            </div>
+            
             <div class="mb-3">
-                <label for="payment_method_trx" class="form-label">Payment Method Trx</label>
-                <input type="text" class="form-control" name="payment_method_trx" id="spam_payment_trx">
+                <label for="mfs_operator_id" class="form-label">MFS Operator <span class="text-danger">*</span></label>
+                <select class="form-select" name="mfs_operator_id" id="spam_mfs_operator_id" required>
+                    <option value="">Select MFS Operator</option>
+                    @foreach($mfsOperators as $operator)
+                        <option value="{{ $operator->id }}" data-name="{{ $operator->name }}" data-type="{{ $operator->type }}">
+                            {{ $operator->name }} ({{ $operator->type }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="sim_id" class="form-label">SIM ID / Method Number (Optional)</label>
+                <input type="text" class="form-control" name="sim_id" id="spam_sim_id" placeholder="Enter SIM ID or method number">
+                <small class="text-muted">Leave empty to keep the existing SIM ID</small>
+            </div>
+            
+            <div class="mb-3">
+                <label for="payment_method_trx" class="form-label">Payment Method Trx <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="payment_method_trx" id="spam_payment_trx" required>
             </div>
             <div class="mb-3">
                 <label for="amount" class="form-label">Amount (Optional)</label>
-                <input type="number" class="form-control" name="amount" id="amount">
+                <input type="number" step="0.01" class="form-control" name="amount" id="spam_amount">
+                <small class="text-muted">Leave empty to keep the original amount</small>
             </div>
           </div>
           <div class="modal-footer">
@@ -248,8 +282,59 @@
     .table td, .table th {
         vertical-align: middle;
     }
+    .table td, .table th {
+        vertical-align: middle;
+    }
     .btn-approve { background-color: #28a745; color: #fff; }
     .btn-reject { background-color: #dc3545; color: #fff; }
+    
+    /* Table row borders for better separation */
+    #deposit_table.dataTable tbody tr {
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+    
+    #deposit_table.dataTable tbody td {
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+    
+    #deposit_table tbody tr:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    /* Action column styling */
+    #deposit_table tbody td:last-child {
+        text-align: center;
+        white-space: normal;
+        padding: 6px 4px !important;
+        min-width: 80px;
+        max-width: 90px;
+    }
+    
+    #deposit_table tbody td:last-child .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 3px;
+        padding: 3px 6px;
+        font-size: 10px;
+        line-height: 1.3;
+        border-radius: 3px;
+    }
+    
+    #deposit_table tbody td:last-child .btn:last-child {
+        margin-bottom: 0;
+    }
+    
+    #deposit_table tbody td:last-child .btn i {
+        font-size: 11px;
+        vertical-align: middle;
+    }
+    
+    /* Hide button text on icon-only buttons */
+    #deposit_table tbody td:last-child .btn-outline-primary .bx-show,
+    #deposit_table tbody td:last-child .btn-outline-danger .lni-cross-circle,
+    #deposit_table tbody td:last-child .btn-outline-danger .bx-hourglass {
+        margin: 0;
+    }
 </style>
 @endpush
 
@@ -258,6 +343,12 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
+
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 
     // Serialize form to object
     $.fn.serializeObject = function(){
@@ -289,10 +380,8 @@ $(document).ready(function() {
             {data: 'payment_method', name: 'payment_method'},
             {data: 'payment_method_trx', name: 'payment_method_trx'},
             {data: 'amount', name: 'amount'},
-            {data: 'fee', name: 'fee', orderable:false, searchable:false},
-            {data: 'commission', name: 'commission', orderable:false, searchable:false},
-            {data: 'from_number', name: 'from_number'},
-            {data: 'note', name: 'note'},
+            {data: 'fee_commission', name: 'fee_commission', orderable:false, searchable:false},
+            {data: 'balance_change', name: 'balance_change', orderable:false, searchable:false},
             {data: 'dates', name: 'dates'},
             {data: 'status_html', name: 'status', orderable:false, searchable:false},
             {data: 'action', name: 'action', orderable:false, searchable:false}
@@ -346,6 +435,7 @@ $(document).on('click', '.viewPaymentBtn', function() {
     setDetail('#detail_amount', data.amount);
     setDetail('#detail_fee', data.fee);
     setDetail('#detail_commission', data.commission);
+    $('#detail_balance_change').html(data.balanceChange || '-');
     setDetail('#detail_from_number', data.fromNumber);
     setDetail('#detail_note', data.note);
     setDetail('#detail_status', data.status);
@@ -383,8 +473,8 @@ $('#reject_form').on('submit', function(e) {
                 let table = $('#deposit_table').DataTable();
                 let row = table.rows().nodes().to$().find(`button[data-payment-id="${$('#modal_id').val()}"]`).closest('tr');
                 if (row.length) {
-                    $(row).find('td:nth-child(11)').html("<span class='badge bg-danger text-white'>Rejected</span>");
-                    $(row).find('td:nth-child(12)').html(""); // remove action buttons
+                    $(row).find('td:nth-child(7)').html("<span class='badge bg-danger text-white'>Rejected</span>");
+                    $(row).find('td:nth-child(8)').html(""); // remove action buttons
                 }
 
                 swal("Success", res.message, "success");
@@ -417,20 +507,61 @@ $('#reject_modal').on('show.bs.modal', function () {
     $(this).find('form')[0].reset();
 });
 
-$('#spamModal').on('show.bs.modal', function () {
-    let form = $(this).find('form')[0];
-    form.reset();
-    let button = $(this).find('button[type="submit"]');
-    button.removeAttr("disabled").html("Submit");
-});
-
+// Remove the show.bs.modal reset handler - it was clearing values set by spamPaymentBtn
+// Reset is now handled when modal is hidden instead
 
 $(document).on('click', '.spamPaymentBtn', function() {
     let paymentId = $(this).data('payment-id');
-    $('#spam_payment_id').val(paymentId);
-    $('#spam_payment_trx').val(''); // clear previous input
-    $('#amount').val('');
+    let simId = $(this).data('sim-id') || '';
+    let paymentMethod = $(this).data('payment-method') || '';
+    let paymentType = $(this).data('payment-type') || '';
+    let paymentTrx = $(this).data('payment-trx') || '';
+    let amount = $(this).data('amount') || '';
+    
+    // Debug: Log values to console
+    console.log('Payment ID:', paymentId);
+    console.log('SIM ID:', simId);
+    console.log('Payment Method:', paymentMethod);
+    console.log('Payment Type:', paymentType);
+    console.log('Payment Trx:', paymentTrx);
+    console.log('Amount:', amount);
+    
+    // Show modal first
     $('#spamModal').modal('show');
+    
+    // Then set values after a short delay to ensure modal is rendered
+    setTimeout(function() {
+        $('#spam_payment_id').val(paymentId);
+        $('#spam_sim_id').val(simId);
+        $('#spam_payment_trx').val(paymentTrx);
+        $('#spam_amount').val(amount);
+        
+        // Set MFS operator based on payment method and type
+        if (paymentMethod && paymentType) {
+            let operatorFound = false;
+            $('#spam_mfs_operator_id option').each(function() {
+                let optionName = $(this).data('name');
+                let optionType = $(this).data('type');
+                if (optionName && optionType && 
+                    optionName.toLowerCase() === paymentMethod.toLowerCase() && 
+                    optionType.toLowerCase() === paymentType.toLowerCase()) {
+                    $('#spam_mfs_operator_id').val($(this).val());
+                    operatorFound = true;
+                    console.log('MFS Operator found and set:', $(this).val());
+                    return false; // break loop
+                }
+            });
+            
+            if (!operatorFound) {
+                $('#spam_mfs_operator_id').val('');
+                console.log('MFS Operator not found');
+            }
+        } else {
+            $('#spam_mfs_operator_id').val('');
+        }
+        
+        console.log('Form values set successfully');
+    }, 100);
 });
 
 // Submit Spam form via AJAX
@@ -454,8 +585,8 @@ $('#spamForm').on('submit', function(e) {
                 let table = $('#deposit_table').DataTable();
                 let row = table.rows().nodes().to$().find(`button[data-payment-id="${res.payment_id}"]`).closest('tr');
                 if (row.length) {
-                    $(row).find('td:nth-child(11)').html("<span class='badge bg-success text-white'>Approved</span>");
-                    $(row).find('td:nth-child(12)').html("");
+                    $(row).find('td:nth-child(7)').html("<span class='badge bg-success text-white'>Approved</span>");
+                    $(row).find('td:nth-child(8)').html("");
                     $(row).css('background-color', '#d4edda').animate({ backgroundColor: '' }, 2000);
                 }
                 swal("Success", res.message, "success");

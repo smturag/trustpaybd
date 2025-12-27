@@ -56,7 +56,9 @@ class PaymentRequest extends Model
         'user_commission',
         'partner_main_amount',
         'user_main_amount',
-        'webhook_url'
+        'webhook_url',
+        'merchant_last_balance',
+        'merchant_new_balance'
 
 
     ];

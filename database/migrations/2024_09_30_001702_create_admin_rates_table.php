@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('admin_rate', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('service_id');
+            $table->unsignedBigInteger('merchant_id')->nullable();
             $table->string('operator');
             $table->string('type');
             $table->integer('rate')->default(1);

@@ -47,6 +47,9 @@
                     <a href="{{ route('merchant_edit', $row->id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
                     <button class="btn btn-outline-danger btn-sm delete" onclick="delete_record('{{ $row->id }}', '{{ $row->fullname }}')">Delete</button>
                      <a href="{{ route('merchant_charge', $row) }}" class="btn btn-outline-primary btn-sm">Rate</a>
+                     <a href="{{ route('admin.loginAsMerchant', $row->id) }}" class="btn btn-outline-success btn-sm" title="Login as this merchant">
+                        <i class="bx bx-log-in"></i> Login as
+                    </a>
                 </td>
             </tr>
         @empty

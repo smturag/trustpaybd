@@ -13,13 +13,21 @@
                 <a href="{{ route('merchant.service-request') }}" class="btn btn-sm btn-outline-warning me-2">
                     <i class='bx bx-mobile-alt me-1'></i> Withdraw
                 </a>
-                <a href="{{ route('merchant.withdraw') }}" class="btn btn-sm btn-outline-danger">
-                    <i class='bx bx-money-withdraw me-1'></i> Payout
+                <a href="{{ route('merchant.payout') }}" class="btn btn-sm btn-outline-success">
+                    <i class='bx bxl-bitcoin me-1'></i> Crypto Payout
                 </a>
             </div>
 
             <div class="top-menu ms-auto">
                 <ul class="navbar-nav align-items-center gap-2">
+                    @if(session('impersonate_admin_id'))
+                    <!-- Return to Admin Button -->
+                    <li class="nav-item">
+                        <a href="{{ route('merchant.returnToAdmin') }}" class="btn btn-sm btn-danger">
+                            <i class='bx bx-arrow-back'></i> Return to Admin
+                        </a>
+                    </li>
+                    @endif
                     <!-- Dark Mode Toggle -->
                     <li class="nav-item dark-mode d-none d-sm-flex">
                         <a class="nav-link dark-mode-icon" href="javascript:;">

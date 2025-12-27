@@ -298,9 +298,22 @@ function calculateAmountFromRate($paymentMethod, $paymentType, $action, $merchan
             ->first();
     }
 
-    // If not found, fallback to zeros
-    $generalFeePercent = $generalFeeRecord->fee ?? 0;
-    $generalCommissionPercent = $generalFeeRecord->commission ?? 0;
+    // If not found in operator_fee_commissions, fallback to mfs_operators default rates
+    if ($generalFeeRecord) {
+        $generalFeePercent = $generalFeeRecord->fee ?? 0;
+        $generalCommissionPercent = $generalFeeRecord->commission ?? 0;
+    } else {
+        // Get default rates from mfs_operators table
+        $mfsOperator = $mfsOperatorId ? MfsOperator::find($mfsOperatorId) : MfsOperator::whereRaw('LOWER(name) = ?', [$paymentMethodNormalized])->where('type', $paymentType)->first();
+        
+        if ($mfsOperator) {
+            $generalFeePercent = $action == 'deposit' ? ($mfsOperator->deposit_fee ?? 0) : ($mfsOperator->withdraw_fee ?? 0);
+            $generalCommissionPercent = $action == 'deposit' ? ($mfsOperator->deposit_commission ?? 0) : ($mfsOperator->withdraw_commission ?? 0);
+        } else {
+            $generalFeePercent = 0;
+            $generalCommissionPercent = 0;
+        }
+    }
 
     $generalFeeAmount = round(($amount * $generalFeePercent) / 100, 2);
     $generalCommissionAmount = round(($amount * $generalCommissionPercent) / 100, 2);
@@ -338,9 +351,22 @@ function calculateAmountFromRate($paymentMethod, $paymentType, $action, $merchan
                 ->first();
         }
 
-        // If not found, set all to zero
-        $subFeePercent = $subFeeRecord->fee ?? 0;
-        $subCommissionPercent = $subFeeRecord->commission ?? 0;
+        // If not found in operator_fee_commissions, fallback to mfs_operators default rates
+        if ($subFeeRecord) {
+            $subFeePercent = $subFeeRecord->fee ?? 0;
+            $subCommissionPercent = $subFeeRecord->commission ?? 0;
+        } else {
+            // Get default rates from mfs_operators table
+            $mfsOperator = $mfsOperatorId ? MfsOperator::find($mfsOperatorId) : MfsOperator::whereRaw('LOWER(name) = ?', [$paymentMethodNormalized])->where('type', $paymentType)->first();
+            
+            if ($mfsOperator) {
+                $subFeePercent = $action == 'deposit' ? ($mfsOperator->deposit_fee ?? 0) : ($mfsOperator->withdraw_fee ?? 0);
+                $subCommissionPercent = $action == 'deposit' ? ($mfsOperator->deposit_commission ?? 0) : ($mfsOperator->withdraw_commission ?? 0);
+            } else {
+                $subFeePercent = 0;
+                $subCommissionPercent = 0;
+            }
+        }
 
         $subFeeAmount = round(($baseAmount * $subFeePercent) / 100, 2);
         $subCommissionAmount = round(($baseAmount * $subCommissionPercent) / 100, 2);
@@ -409,9 +435,22 @@ function calculateAmountFromRateForMember($paymentMethod, $paymentType, $action,
             ->first();
     }
 
-    // If not found, fallback to zeros
-    $partnerFeePercent = $partnerFeeRecord->fee ?? 0;
-    $partnerCommissionPercent = $partnerFeeRecord->commission ?? 0;
+    // If not found in user_charges, fallback to mfs_operators default rates
+    if ($partnerFeeRecord) {
+        $partnerFeePercent = $partnerFeeRecord->fee ?? 0;
+        $partnerCommissionPercent = $partnerFeeRecord->commission ?? 0;
+    } else {
+        // Get default rates from mfs_operators table
+        $mfsOperator = $mfsOperatorId ? MfsOperator::find($mfsOperatorId) : MfsOperator::whereRaw('LOWER(name) = ?', [$paymentMethodNormalized])->where('type', $paymentType)->first();
+        
+        if ($mfsOperator) {
+            $partnerFeePercent = $action == 'deposit' ? ($mfsOperator->deposit_fee ?? 0) : ($mfsOperator->withdraw_fee ?? 0);
+            $partnerCommissionPercent = $action == 'deposit' ? ($mfsOperator->deposit_commission ?? 0) : ($mfsOperator->withdraw_commission ?? 0);
+        } else {
+            $partnerFeePercent = 0;
+            $partnerCommissionPercent = 0;
+        }
+    }
 
     $partnerFeeAmount = round(($amount * $partnerFeePercent) / 100, 2);
     $partnerCommissionAmount = round(($amount * $partnerCommissionPercent) / 100, 2);
@@ -449,9 +488,22 @@ function calculateAmountFromRateForMember($paymentMethod, $paymentType, $action,
                 ->first();
         }
 
-        // If not found, set all to zero
-        $subFeePercent = $subFeeRecord->fee ?? 0;
-        $subCommissionPercent = $subFeeRecord->commission ?? 0;
+        // If not found in user_charges, fallback to mfs_operators default rates
+        if ($subFeeRecord) {
+            $subFeePercent = $subFeeRecord->fee ?? 0;
+            $subCommissionPercent = $subFeeRecord->commission ?? 0;
+        } else {
+            // Get default rates from mfs_operators table
+            $mfsOperator = $mfsOperatorId ? MfsOperator::find($mfsOperatorId) : MfsOperator::whereRaw('LOWER(name) = ?', [$paymentMethodNormalized])->where('type', $paymentType)->first();
+            
+            if ($mfsOperator) {
+                $subFeePercent = $action == 'deposit' ? ($mfsOperator->deposit_fee ?? 0) : ($mfsOperator->withdraw_fee ?? 0);
+                $subCommissionPercent = $action == 'deposit' ? ($mfsOperator->deposit_commission ?? 0) : ($mfsOperator->withdraw_commission ?? 0);
+            } else {
+                $subFeePercent = 0;
+                $subCommissionPercent = 0;
+            }
+        }
 
         $subFeeAmount = round(($baseAmount * $subFeePercent) / 100, 2);
         $subCommissionAmount = round(($baseAmount * $subCommissionPercent) / 100, 2);
@@ -604,10 +656,20 @@ function paymentRequestApprovedBalanceHandler($paymentRequestId, $type)
         merchantBalanceAction($request->sub_merchant, 'plus', $request->sub_merchant_main_amount, false);
         merchantBalanceAction($request->merchant_id, 'plus', $request->merchant_main_amount, false);
 
+        // Get new balances after update
+        $subMerchant = Merchant::find($request->sub_merchant);
+        $mainMerchant = Merchant::find($request->merchant_id);
+        
+        $request->sub_merchant_new_balance = $subMerchant ? $subMerchant->balance : 0;
+        $request->merchant_new_balance = $mainMerchant ? $mainMerchant->balance : 0;
         $request->merchant_balance_updated = 1;
         $request->save();
     } else {
         merchantBalanceAction($request->merchant_id, 'plus', $request->merchant_main_amount, true);
+        
+        // Get new balance after update
+        $merchant = Merchant::find($request->merchant_id);
+        $request->merchant_new_balance = $merchant ? $merchant->available_balance : 0;
         $request->merchant_balance_updated = 1;
         $request->save();
     }

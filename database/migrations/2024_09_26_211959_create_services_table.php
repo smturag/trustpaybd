@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('services', function (Blueprint $table) {
             $table->id();
             $table->string('name',20)->unique()->nullable();
-            $table->boolean('status')->default('true');
+            $table->boolean('status')->default(true);
             $table->timestamps();
         });
     }

@@ -41,7 +41,7 @@ class ReportsController extends Controller
 
         $qrdata = ServiceRequest::with('merchant')->orderBy($sort_by, $sort_type);
 
-        if (!empty($request->status)) {
+        if (!empty($request->status) && $request->status !== 'all') {
             switch ($request->status) {
                 case 'success':
                     $qrdata->whereIn('status', [2, 3]);

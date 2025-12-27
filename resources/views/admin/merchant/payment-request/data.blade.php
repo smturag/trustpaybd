@@ -23,8 +23,7 @@
             {{-- <th scope="col" class="text-center">TrxId</th> --}}
             <!--<th scope="col">Reference</th>-->
             <th scope="col">From </th>
-
-            <th scope="col">Note</th>
+            <th scope="col">Balance Change</th>
             <th scope="col">Date</th>
             <th scope="col">Status</th>
             <th scope="col">Action</th>
@@ -99,13 +98,18 @@
                         </span>
                     </div>
                 </td>
-                <td class="text-center custom-note-container">
-                        <div class="custom-note-content">
-                            {{ $row->reject_msg }} <br>
-                            {{ $row->note }}
-                        </div>
-
-                       
+                <td class="text-center">
+                    @if($row->merchant_last_balance !== null)
+                        <span class="badge bg-secondary">{{ number_format($row->merchant_last_balance, 2) }}</span>
+                    @else
+                        <span class="text-muted">-</span>
+                    @endif
+                    <i class="bx bx-right-arrow-alt"></i>
+                    @if($row->merchant_new_balance !== null)
+                        <span class="badge bg-success">{{ number_format($row->merchant_new_balance, 2) }}</span>
+                    @else
+                        <span class="text-muted">-</span>
+                    @endif
                 </td>
 
 

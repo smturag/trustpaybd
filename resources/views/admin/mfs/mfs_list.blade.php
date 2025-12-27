@@ -114,6 +114,7 @@
                                     <label for="status">{{ translate('status') }}</label>
                                     <select class="form-control" name="status" id="status">
                                         <option value="">--Status--</option>
+                                        <option value="all">All</option>
                                         <option value="success">Success</option>
                                         <option value="waiting">Waiting</option>
                                         <option value="pending">Pending</option>

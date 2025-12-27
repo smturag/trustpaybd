@@ -61,13 +61,13 @@
 
         <li>
             <a class="has-arrow" href="javascript:;">
-                <div class="parent-icon"><i class="bx bx-money"></i></div>
-                <div class="menu-title">Payout</div>
+                <div class="parent-icon"><i class="bx bxl-bitcoin"></i></div>
+                <div class="menu-title">Crypto Payout</div>
             </a>
             <ul>
-                <li><a href="{{ route('merchant.withdraw') }}"><i class='bx bx-plus-circle'></i>Payout Request </a>
+                <li><a href="{{ route('merchant.payout') }}"><i class='bx bx-plus-circle'></i>Create Payout Request </a>
                 </li>
-                <li><a href="{{ route('merchant.withdraw-list') }}"><i class='bx bx-list-ul'></i> Payout History</a>
+                <li><a href="{{ route('merchant.payout-history') }}"><i class='bx bx-list-ul'></i>Payout History</a>
                 </li>
             </ul>
         </li>
@@ -176,6 +176,10 @@
                 </ul>
                 <ul class="mm-collapse">
             <li><a href="{{ route('report.merchant.service_report') }}"><i class="bx bx-radio-circle"></i>Service Report</a>
+            </li>
+        </ul>
+                <ul class="mm-collapse">
+            <li><a href="{{ route('report.merchant.balance_summary') }}"><i class="bx bx-wallet"></i>Balance Summary</a>
             </li>
         </ul>
                 @endif

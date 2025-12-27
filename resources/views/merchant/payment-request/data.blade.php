@@ -32,21 +32,15 @@
     <thead>
         <tr class="text-center">
             <th scope="col" class="text-center">#</th>
-            {{-- <th scope="col">Merchant</th> --}}
-            {{-- <th scope="col">Customer Name</th> --}}
-            <th scope="col">From</th>
             <th scope="col">Method</th>
-            {{-- <th scope="col">Type</th> --}}
+            <th scope="col">MFS Method/Trx</th>
             <th scope="col">Amount</th>
-            <th scope="col">Fee</th>
-            <th scope="col">Commission</th>
+            <th scope="col">Fee / Comm</th>
             <th scope="col">New Amount</th>
-            <th scope="col" class="text-center">TrxId & Reference</th>
-            <th scope="col" class="text-center">Note</th>
-            {{-- <th scope="col">Customer Trxid</th> --}}
+            <th scope="col">Balance Change</th>
             <th scope="col">Date</th>
             <th scope="col">Status</th>
-            {{-- <th scope="col" class="text-center">Action</th> --}}
+            <th scope="col">Action</th>
         </tr>
     </thead>
     <tbody>
@@ -80,86 +74,84 @@
             @endphp
             <tr id="{{ $row->id }}">
                 <td class="text-center">{{ ++$key }}</td>
-                {{--   <td class="text-center">
-                    {{ CustomerInfo($row->customer_id)->customer_name ? CustomerInfo($row->customer_id)->customer_name : $row->cust_name }}
-                    <br> {{ $row->cust_phone }}
-                </td> --}}
 
-                <td class="text-center"> {{ $BMData ? $BMData->mobile : '' }} <span
-                        class="text-success font-weight-bold">
-                    </span></td>
-
-                {{-- <td class="text-center">{{ $row->merchant->fullname }}</td> --}}
-                <td class="text-center"> {{ $subMerchantName }} <br> {{ $row->payment_method }}, {{ $row->sim_id }} <br> {{ $row->payment_type }}
+                <td class="text-center">
+                    {{ $subMerchantName }} <br>
+                    {{ $row->payment_method }}, {{ $row->sim_id }} <br>
+                    {{ $row->payment_type }} <br>
+                    <small class="text-muted">From: {{ $BMData ? $BMData->mobile : '-' }}</small>
                 </td>
-                <!--<td class="text-center">{{ fake()->randomElement(['cashin', 'cashout', 'send money']) }}</td>-->
-                {{-- <td class="text-center">{{ $make_method }}</td> --}}
+
+                <td class="text-center">
+                    <span class="text-success">{{ $row->payment_method_trx }}</span> <br>
+                    <span class="text-info">{{ $row->reference }}</span>
+                </td>
+
                 <td class="text-center">{{ $row->amount }}</td>
 
                 @if (auth('merchant')->user()->merchant_type == 'general')
-                    <td class="text-center">{{ $row->merchant_fee }} </td>
-                    <td class="text-center">{{ $row->merchant_commission }} </td>
+                    <td class="text-center">
+                        <span class="badge bg-danger">{{ number_format($row->merchant_fee, 2) }}</span> /
+                        <span class="badge bg-success">{{ number_format($row->merchant_commission, 2) }}</span>
+                    </td>
                     <td class="text-center">{{ $row->merchant_main_amount }} </td>
                 @elseif(auth('merchant')->user()->merchant_type == 'sub_merchant')
-                    <td class="text-center">{{ $row->sub_merchant_fee }} </td>
-                    <td class="text-center">{{ $row->sub_merchant_fee }} </td>
+                    <td class="text-center">
+                        <span class="badge bg-danger">{{ number_format($row->sub_merchant_fee, 2) }}</span> /
+                        <span class="badge bg-success">{{ number_format($row->sub_merchant_commission, 2) }}</span>
+                    </td>
                     <td class="text-center">{{ $row->sub_merchant_main_amount }} </td>
                 @endif
 
-                <td>
-                    <span class="text-success">{{ $row->payment_method_trx }} </span>
-                    <br>
-                    <span class="text-info">{{ $row->reference }} </span>
-                </td>
-                <td>
-                    <div class="note-container">
-                        <div class="note-content">
-                            {{ $row->reject_msg }}
-                        </div>
-                    </div>
+                <td class="text-center">
+                    <span class="badge bg-secondary">{{ number_format($row->merchant_last_balance, 2) }}</span>
+                    <i class="bx bx-right-arrow-alt"></i>
+                    <span class="badge bg-success">{{ number_format($row->merchant_new_balance, 2) }}</span>
                 </td>
 
                 <td class="text-center">
                     {{ $row->created_at->format('h:i:sa, d-m-Y') }},
                     <br>
                     <span class="text-success font-weight-bold"><?php echo \Carbon\Carbon::createFromTimeStamp(strtotime($row->created_at))->diffForHumans(); ?></span>
-                    <br>
-                    {{ $row->updated_at->format('h:i:sa, d-m-Y') }},
-                    <br>
-                    <span class="text-success font-weight-bold"><?php echo \Carbon\Carbon::createFromTimeStamp(strtotime($row->updated_at))->diffForHumans(); ?></span>
                 </td>
                 @if ($row->status == 0)
                     <td><span class='badge badge-pill bg-warning text-white'> Pending </span></td>
                 @elseif($row->status == 1)
                     <td><span class='badge badge-pill bg-success text-white'>
-                            <i
-                                class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>Success</span>
+                            <i class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>Success</span>
                     </td>
                 @elseif($row->status == 2)
                     <td><span class='badge badge-pill bg-success text-white'>
-                            <i
-                                class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>Approved</span>
+                            <i class="bx bx-radio-circle-marked bx-burst bx-rotate-90 align-middle font-18 me-1"></i>Approved</span>
                     </td>
                 @elseif($row->status == 3)
                     <td><span class='badge badge-pill bg-danger text-white'>Rejected</span></td>
                 @else
                     <td></td>
                 @endif
-                {{-- <td>
-                @if ($row->status == 0 || $row->status == 2)
-                    <a href="#" class="openPopup btn btn-sm btn-success" id="{{ $row->id }}" data-bs-toggle="modal"
-                       data-bs-target="#myModal"><i class="bx bx-check-double" aria-hidden="true"></i></a>
 
-                    <a href="#" class="rejectBalance btn btn-sm btn-outline-danger" id="{{ $row->id }}"><i
-                            class="lni lni-cross-circle" aria-hidden="true"></i></a>
-
-                @else
-                    <a href="#" class="openPopup btn btn-sm btn-outline-info" data-bs-toggle="modal"
-                       data-href="{{ route('view_balance_manager', $row->id) }}" data-bs-target="#myModal"><i
-                            class="lni lni-eye" aria-hidden="true"></i></a>
-                @endif
-
-            </td> --}}
+                <td class="text-center">
+                    <button type="button" class="viewPaymentBtn btn btn-sm btn-outline-primary"
+                        data-payment-id="{{ $row->id }}"
+                        data-request-id="{{ $row->request_id }}"
+                        data-trxid="{{ $row->trxid }}"
+                        data-merchant-name="{{ $subMerchantName }}"
+                        data-payment-method="{{ $row->payment_method }}"
+                        data-payment-trx="{{ $row->payment_method_trx }}"
+                        data-reference="{{ $row->reference }}"
+                        data-amount="{{ number_format($row->amount, 2) }}"
+                        data-fee="{{ auth('merchant')->user()->merchant_type == 'general' ? number_format($row->merchant_fee, 2) : number_format($row->sub_merchant_fee, 2) }}"
+                        data-commission="{{ auth('merchant')->user()->merchant_type == 'general' ? number_format($row->merchant_commission, 2) : number_format($row->sub_merchant_commission, 2) }}"
+                        data-new-amount="{{ auth('merchant')->user()->merchant_type == 'general' ? $row->merchant_main_amount : $row->sub_merchant_main_amount }}"
+                        data-from-number="{{ $BMData ? $BMData->mobile : '-' }}"
+                        data-note="{{ $row->note ?? $row->reject_msg ?? '-' }}"
+                        data-created-at="{{ $row->created_at->format('h:i:sa, d-m-Y') }}"
+                        data-status="{{ ['Pending', 'Success', 'Approved', 'Rejected'][$row->status] ?? '-' }}"
+                        title="View Details"
+                        data-bs-toggle="tooltip">
+                        <i class="bx bx-show"></i>
+                    </button>
+                </td>
             </tr>
         @endforeach
 

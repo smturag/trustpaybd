@@ -9,13 +9,10 @@
             <th scope="col">ReqTime</th>
             <th scope="col">Name</th>
             <th scope="col">MFS</th>
-            <th scope="col">Number</th>
-            <th scope="col">Oldbal</th>
             <th scope="col">Amount</th>
-            <th scope="col">Fee</th>
-            <th scope="col">Commission</th>
+            <th scope="col">Fee / Comm</th>
             <th scope="col">Main Balance</th>
-            <th scope="col">Lastbal</th>
+            <th scope="col">Balance Change</th>
             <th scope="col">Trxid</th>
            {{--   <th scope="col">Type</th> --}}
             <th scope="col">Status</th>
@@ -82,14 +79,18 @@
                     }
                 @endphp
 
-                <td style="text-transform: capitalize;">{{ $row->mfs }} <br> {{$make_type}}</td>
-                <td>{{ $row->number }}</td>
-                <td>{{ money($row->old_balance) }}</td>
+                <td style="text-transform: capitalize;">{{ $row->mfs }} <br> {{$make_type}} <br> <small class="text-muted">{{ $row->number }}</small></td>
                 <td>{{ money($row->amount) }}</td>
-                <td>{{ $fee !== null ? money($fee) : '-' }}</td>
-                <td>{{ $commission !== null ? money($commission) : '-' }}</td>
+                <td>
+                    <span class="badge bg-danger">{{ $fee !== null ? money($fee) : '-' }}</span> /
+                    <span class="badge bg-success">{{ $commission !== null ? money($commission) : '-' }}</span>
+                </td>
                 <td>{{ $mainAmount !== null ? money($mainAmount) : '-' }}</td>
-                <td>{{ money($row->new_balance) }}</td>
+                <td>
+                    <span class="badge bg-secondary">{{ money($row->old_balance) }}</span>
+                    <i class="bx bx-right-arrow-alt"></i>
+                    <span class="badge bg-success">{{ money($row->new_balance) }}</span>
+                </td>
                 <td style="width: 150px; word-wrap: break-word; white-space: normal;">
                     {{ $row->get_trxid }}
                 </td>
@@ -133,6 +134,7 @@
                             style="color: #e6be96; background-color: blue">{{ $row->user->fullname }}</span>
                         <br><span class='badge badge-pill'
                             style="color: #e6be96; background-color: blue">{{ getSimInfo($row->modem_id) }}</span>
+                        <br><small class="text-muted">SIM: {{ $row->sim_number }}</small>
                     @endif
 
                 </td>

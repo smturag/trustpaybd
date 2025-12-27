@@ -61,6 +61,19 @@
                     </div>
                 </div>
 
+                {{-- Payment Type --}}
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="payment_type">Payment Type</label>
+                        <select name="payment_type" class="form-control" id="payment_type">
+                            <option value="">All Types</option>
+                            <option value="P2A" {{ request('payment_type') == 'P2A' ? 'selected' : '' }}>P2A</option>
+                            <option value="P2C" {{ request('payment_type') == 'P2C' ? 'selected' : '' }}>P2C</option>
+                            <option value="P2P" {{ request('payment_type') == 'P2P' ? 'selected' : '' }}>P2P</option>
+                        </select>
+                    </div>
+                </div>
+
                 {{-- Merchant --}}
                 <div class="col-md-2">
                     <div class="form-group">

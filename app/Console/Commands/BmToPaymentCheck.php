@@ -150,7 +150,7 @@ class BmToPaymentCheck extends Command
                             'sim_id' => $item->bm_sim,
                             'agent' => $agent->member_code,
                             'updated_at' => now(),
-                            'balance_updated' => 1,
+                            // 'balance_updated' => 1,
                             'accepted_by' => 'Automatic',
                             'trxid' => $paymentTrxId,
                             'payment_type' => $paymentType,

@@ -68,17 +68,93 @@
 
         /* Ensure page content is never hidden behind the sidebar */
         .page-wrapper {
-            margin-left: 250px;
-            transition: margin-left 0.2s;
+            margin-left: 220px;
+            transition: margin-left 0.3s ease;
         }
         @media (max-width: 1199px) {
             .page-wrapper {
-                margin-left: 180px;
+                margin-left: 160px;
             }
         }
         @media (max-width: 991px) {
             .page-wrapper {
                 margin-left: 0;
+            }
+        }
+
+        /* Make default sidebar narrower */
+        .sidebar-wrapper {
+            width: 220px !important;
+            transition: all 0.3s ease;
+        }
+
+        /* Sidebar collapsed state - make it compact but visible */
+        .toggled .sidebar-wrapper {
+            width: 70px !important;
+        }
+        
+        .toggled .sidebar-wrapper .sidebar-header {
+            padding: 0.5rem 0;
+            text-align: center;
+        }
+        
+        .toggled .sidebar-wrapper .sidebar-header .logo-icon {
+            margin: 0 auto;
+            display: block;
+            max-width: 45px;
+        }
+        
+        .toggled .sidebar-wrapper .sidebar-header .logo-text {
+            display: none;
+        }
+        
+        .toggled .sidebar-wrapper .metismenu li > a {
+            padding: 0.75rem 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .toggled .sidebar-wrapper .metismenu .parent-icon {
+            margin: 0;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .toggled .sidebar-wrapper .metismenu .parent-icon i {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        
+        .toggled .sidebar-wrapper .metismenu .menu-title {
+            display: none;
+        }
+        
+        .toggled .sidebar-wrapper .metismenu .badge {
+            display: none;
+        }
+        
+        .toggled .sidebar-wrapper .toggle-icon {
+            display: flex !important;
+        }
+        
+        .toggled .page-wrapper {
+            margin-left: 70px;
+        }
+        
+        @media (max-width: 991px) {
+            .toggled .page-wrapper {
+                margin-left: 0;
+            }
+            .sidebar-wrapper {
+                width: 180px !important;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .sidebar-wrapper {
+                width: 220px !important;
             }
         }
     </style>

@@ -115,6 +115,17 @@ class MerchantPaymentController extends BaseController
         DB::beginTransaction();
 
         try {
+            // Capture current merchant balance before creating payment
+            $merchantId = $merchant_type == 'sub_merchant' ? $merchant['merchant_id'] : $merchant['merchant_id'];
+            $merchantBalance = Merchant::where('id', $merchantId)->value('balance');
+            $mainMerchantId = $merchant_type == 'sub_merchant' ? $getAdminMerchant : $merchant['merchant_id'];
+            $mainMerchantBalance = Merchant::where('id', $mainMerchantId)->value('balance');
+            
+            $data['merchant_last_balance'] = $mainMerchantBalance;
+            $data['merchant_new_balance'] = $mainMerchantBalance; // Will be updated on approval
+            $data['sub_merchant_last_balance'] = $merchant_type == 'sub_merchant' ? $merchantBalance : null;
+            $data['sub_merchant_new_balance'] = $merchant_type == 'sub_merchant' ? $merchantBalance : null; // Will be updated on approval
+            
             if ($payment = PaymentRequest::create($data)) {
                 // if ($customerExist == false) {
                 //     $customerPassword = rand(1111, 999999);

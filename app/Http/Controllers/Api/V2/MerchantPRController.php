@@ -278,6 +278,17 @@ class MerchantPRController extends Controller
                 $data['ext_field_2'] = json_encode($request->ext_field_2);
             }
 
+            // Capture current merchant balance before creating payment
+            $merchantId = $merchant_type === 'sub_merchant' ? $this->merchant->id : $this->merchant->id;
+            $merchantBalance = Merchant::where('id', $merchantId)->value('balance');
+            $mainMerchantId = $merchant_type === 'sub_merchant' ? $this->merchant->create_by : $this->merchant->id;
+            $mainMerchantBalance = Merchant::where('id', $mainMerchantId)->value('balance');
+            
+            $data['merchant_last_balance'] = $mainMerchantBalance;
+            $data['merchant_new_balance'] = $mainMerchantBalance; // Will be updated on approval
+            $data['sub_merchant_last_balance'] = $merchant_type === 'sub_merchant' ? $merchantBalance : null;
+            $data['sub_merchant_new_balance'] = $merchant_type === 'sub_merchant' ? $merchantBalance : null; // Will be updated on approval
+
             $check = PaymentRequest::create($data);
 
             /*
@@ -447,6 +458,17 @@ class MerchantPRController extends Controller
         if ($request->has('ext_field_2')) {
             $data['ext_field_2'] = json_encode($request->ext_field_2);
         }
+
+        // Capture current merchant balance before creating payment
+        $merchantId = $merchant_type === 'sub_merchant' ? $this->merchant->id : $this->merchant->id;
+        $merchantBalance = Merchant::where('id', $merchantId)->value('balance');
+        $mainMerchantId = $merchant_type === 'sub_merchant' ? $this->merchant->create_by : $this->merchant->id;
+        $mainMerchantBalance = Merchant::where('id', $mainMerchantId)->value('balance');
+        
+        $data['merchant_last_balance'] = $mainMerchantBalance;
+        $data['merchant_new_balance'] = $mainMerchantBalance; // Will be updated on approval
+        $data['sub_merchant_last_balance'] = $merchant_type === 'sub_merchant' ? $merchantBalance : null;
+        $data['sub_merchant_new_balance'] = $merchant_type === 'sub_merchant' ? $merchantBalance : null; // Will be updated on approval
 
         $check = PaymentRequest::create($data);
 

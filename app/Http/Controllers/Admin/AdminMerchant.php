@@ -293,4 +293,24 @@ public function editFees($merchantId)
 
         return redirect()->back()->with('message','Fees & Commissions updated successfully!');
     }
+
+    /**
+     * Login as merchant - Admin impersonation
+     */
+    public function loginAsMerchant($id)
+    {
+        $merchant = Merchant::findOrFail($id);
+        
+        // Store admin ID in session to allow reverting back
+        Session::put('impersonate_admin_id', Auth::guard('admin')->id());
+        
+        // Logout from admin guard
+        Auth::guard('admin')->logout();
+        
+        // Login as merchant
+        Auth::guard('merchant')->login($merchant);
+        
+        // Redirect to merchant dashboard
+        return redirect()->route('merchant_dashboard')->with('message', 'You are now logged in as ' . $merchant->fullname);
+    }
 }

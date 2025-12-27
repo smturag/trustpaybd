@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use App\Lib\GoogleAuthenticator;
 use App\Models\Merchant;
+use App\Models\Admin;
 use Cache;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
@@ -226,5 +227,36 @@ class MerchantLogin extends Controller
             : redirect('/merchant');
     }
 
+    /**
+     * Return to admin panel after impersonation
+     */
+    public function returnToAdmin()
+    {
+        $adminId = Session::get('impersonate_admin_id');
+        
+        if (!$adminId) {
+            return redirect()->route('merchantlogout');
+        }
+        
+        // Find admin
+        $admin = Admin::find($adminId);
+        
+        if (!$admin) {
+            Session::forget('impersonate_admin_id');
+            return redirect()->route('merchantlogout');
+        }
+        
+        // Logout from merchant
+        Auth::guard('merchant')->logout();
+        
+        // Remove impersonation flag
+        Session::forget('impersonate_admin_id');
+        
+        // Login as admin
+        Auth::guard('admin')->login($admin);
+        
+        // Redirect to merchant list
+        return redirect()->route('merchantList')->with('message', 'You have returned to admin panel');
+    }
 
 }
