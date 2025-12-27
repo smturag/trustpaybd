@@ -214,25 +214,25 @@ class MerchantPaymentRequestController extends Controller
 
 
     public function service_request_index(Request $request)
-{
-    $sort_by = $request->get('sortby', 'id');
-    $sort_type = $request->get('sorttype', 'desc');
-    $rows = $request->get('rows', 10);
+    {
+        $sort_by = $request->get('sortby', 'id');
+        $sort_type = $request->get('sorttype', 'desc');
+        $rows = $request->get('rows', 10);
 
-    $user = auth('merchant')->user();
-    $query_data = $this->buildServiceRequestQuery($request, $user);
+        $user = auth('merchant')->user();
+        $query_data = $this->buildServiceRequestQuery($request, $user);
 
-    $data = $query_data->orderBy($sort_by, $sort_type)->paginate($rows);
+        $data = $query_data->orderBy($sort_by, $sort_type)->paginate($rows);
 
-    if ($request->ajax()) {
-        // ✅ IMPORTANT: match your Blade path
-        return view('merchant.service-request.data', compact('data'))->render();
+        if ($request->ajax()) {
+            // ✅ IMPORTANT: match your Blade path
+            return view('merchant.service-request.data', compact('data'))->render();
+        }
+
+        $merchants = Merchant::orderBy('fullname')->get();
+
+        return view('merchant.service-request.request-list', compact('data', 'merchants'));
     }
-
-    $merchants = Merchant::orderBy('fullname')->get();
-
-    return view('merchant.service-request.request-list', compact('data', 'merchants'));
-}
 
     public function exportPaymentRequests(Request $request)
     {
@@ -409,59 +409,63 @@ class MerchantPaymentRequestController extends Controller
 
 
     public function createNewDeposit()
-{
+    {
 
-    // dd(mfsList());
+        // dd(mfsList());
 
-    // $staticList = listOfIbotOp();
-    // $dynamicList = $this->fetchMfsApi();
+        // $staticList = listOfIbotOp();
+        // $dynamicList = $this->fetchMfsApi();
 
-    // $staticMap = collect($staticList)->keyBy(fn ($item) => strtolower($item['deposit_method']));
-    // $dynamicMap = collect($dynamicList)->keyBy(fn ($item) => strtolower($item['type']));
+        // $staticMap = collect($staticList)->keyBy(fn ($item) => strtolower($item['deposit_method']));
+        // $dynamicMap = collect($dynamicList)->keyBy(fn ($item) => strtolower($item['type']));
 
-    // $allMethods = collect(array_merge(
-    //     $staticMap->keys()->toArray(),
-    //     $dynamicMap->keys()->toArray()
-    // ))->unique();
+        // $allMethods = collect(array_merge(
+        //     $staticMap->keys()->toArray(),
+        //     $dynamicMap->keys()->toArray()
+        // ))->unique();
 
-    // $finalList = $allMethods->map(function ($method) use ($staticMap, $dynamicMap) {
-    //     $useStatic = rand(0, 1) === 1;
+        // $finalList = $allMethods->map(function ($method) use ($staticMap, $dynamicMap) {
+        //     $useStatic = rand(0, 1) === 1;
 
-    //     if ($useStatic && $staticMap->has($method)) {
-    //         return $staticMap->get($method);
-    //     } elseif ($dynamicMap->has($method)) {
-    //         return [
-    //             'deposit_method' => strtolower($dynamicMap[$method]['type']),
-    //             'deposit_number' => $dynamicMap[$method]['phone'],
-    //             'icon' => "https://ibotbd.com/payments/" . strtolower($dynamicMap[$method]['type']) . ".png"
-    //         ];
-    //     } elseif ($staticMap->has($method)) {
-    //         return $staticMap->get($method);
-    //     }
+        //     if ($useStatic && $staticMap->has($method)) {
+        //         return $staticMap->get($method);
+        //     } elseif ($dynamicMap->has($method)) {
+        //         return [
+        //             'deposit_method' => strtolower($dynamicMap[$method]['type']),
+        //             'deposit_number' => $dynamicMap[$method]['phone'],
+        //             'icon' => "https://ibotbd.com/payments/" . strtolower($dynamicMap[$method]['type']) . ".png"
+        //         ];
+        //     } elseif ($staticMap->has($method)) {
+        //         return $staticMap->get($method);
+        //     }
 
-    //     return null;
-    // })->filter()->values();
+        //     return null;
+        // })->filter()->values();
 
-    return view('merchant.payment-request.create_payment_request', [
-        'mfsList' => mfsList()
-    ]);
-}
-
-
-public function depositRequestStore(Request $request)
-{
+        return view('merchant.payment-request.create_payment_request', [
+            'mfsList' => mfsList()
+        ]);
+    }
 
 
+    public function depositRequestStore(Request $request)
+    {
 
 
-    // ✅ Basic Validation
-    $request->validate([
-        'amount' => 'required|numeric|min:1',
-        'payment_method' => 'required',
-        'deposit_number' => 'required',
-        'from_number' => 'nullable',
-        'transaction_id' => [
-                'required', 'string', 'min:8', 'max:10', 'regex:/^[a-zA-Z0-9]+$/',
+
+
+        // ✅ Basic Validation
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'payment_method' => 'required',
+            'deposit_number' => 'required',
+            'from_number' => 'nullable',
+            'transaction_id' => [
+                'required',
+                'string',
+                'min:8',
+                'max:10',
+                'regex:/^[a-zA-Z0-9]+$/',
                 function ($attribute, $value, $fail) {
                     $exists = PaymentRequest::where('payment_method_trx', $value)
                         ->whereIn('status', [0, 1, 2])
@@ -471,136 +475,136 @@ public function depositRequestStore(Request $request)
                     }
                 },
             ],
-    ]);
+        ]);
 
-    // ✅ Find Agent by SIM Number
-    $agent = Modem::where('sim_number', $request->deposit_number)->first();
-    if (!$agent) {
-        return redirect()->back()->with('alert', 'Invalid agent ID or unavailable agent.');
+        // ✅ Find Agent by SIM Number
+        $agent = Modem::where('sim_number', $request->deposit_number)->first();
+        if (!$agent) {
+            return redirect()->back()->with('alert', 'Invalid agent ID or unavailable agent.');
+        }
+
+        $user = auth('merchant')->user();
+
+
+        $merchantRate = calculateAmountFromRate($request->payment_method, $request->account_type, 'deposit', auth('merchant')->user()->id, $request->amount);
+
+        $currentAgent = User::where('member_code', $agent->member_code)->where('user_type', 'agent')->first();
+
+        $memberRate = calculateAmountFromRateForMember($request->payment_method, $request->account_type, 'deposit', $currentAgent->id, $request->amount);
+
+
+        // ✅ Get merchant's current balance
+        $mainMerchantId = $user->merchant_type == 'sub_merchant' ? $user->create_by : $user->id;
+        $mainMerchant = Merchant::find($mainMerchantId);
+        $mainMerchantBalance = $mainMerchant ? floatval($mainMerchant->balance) : 0;
+
+        // ✅ Get sub-merchant balance if applicable
+        $subMerchantBalance = null;
+        if ($user->merchant_type == 'sub_merchant') {
+            $subMerchant = Merchant::find($user->id);
+            $subMerchantBalance = $subMerchant ? floatval($subMerchant->balance) : 0;
+        }
+
+        // ✅ Generate base data array
+        $data = [
+            'agent' => $agent->member_code,
+            'partner' => optional(getPartnerFromAgent($agent->member_code))->member_code,
+            'from_number' => $request->from_number ?? null,
+            'modem_id' => $agent->id,
+            'request_id' => generatePaymentRequestTrx(25),
+            'payment_method_trx' => $request->transaction_id,
+            'sim_id' => $request->deposit_number,
+            'trxid' => generatePaymentRequestTrx(6),
+            'amount' => $request->amount,
+            'payment_method' => $request->payment_method,
+            'merchant_id' => $user->merchant_type == 'sub_merchant' ? $user->create_by : $user->id,
+            'sub_merchant' => $user->merchant_type == 'sub_merchant' ? $user->id : null,
+            'reference' => substr(Str::uuid()->toString(), 0, 20), // Unique reference
+            'currency' => 'BDT',
+            'callback_url' => '/', // update if needed
+            'cust_name' => $request->cust_name ?? null,
+            'cust_phone' => $request->cust_phone ?? null,
+            'cust_address' => $request->cust_address ?? null,
+            'issue_time' => Carbon::now(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'accepted_by' => null,
+            'payment_type' => $request->account_type,
+            'merchant_fee' => $merchantRate['general']['fee_amount'],
+            'merchant_commission' => $merchantRate['general']['commission_amount'],
+            'sub_merchant_fee' => $merchantRate['sub_merchant']['fee_amount'],
+            'sub_merchant_commission' => $merchantRate['sub_merchant']['commission_amount'],
+            'merchant_main_amount' => $merchantRate['general']['net_amount'],
+            'sub_merchant_main_amount' => $merchantRate['sub_merchant']['net_amount'],
+            'merchant_last_balance' => $mainMerchantBalance,
+            'merchant_new_balance' => $mainMerchantBalance, // Will be updated on approval
+            'sub_merchant_last_balance' => $subMerchantBalance,
+            'sub_merchant_new_balance' => $subMerchantBalance, // Will be updated on approval
+            'partner_fee' => $memberRate['member']['fee_amount'],
+            'partner_commission' => $memberRate['member']['commission_amount'],
+            'user_fee' => $memberRate['agent']['fee_amount'],
+            'user_commission' => $memberRate['agent']['commission_amount'],
+            'partner_main_amount' => $memberRate['member']['net_amount'],
+            'user_main_amount' => $memberRate['agent']['net_amount'],
+        ];
+
+        // ✅ Store to database
+        PaymentRequest::create($data);
+
+        // ✅ Redirect back with success message
+        return redirect()->back()->with('message', 'Deposit request submitted successfully.');
     }
-
-    $user = auth('merchant')->user();
-
-
-    $merchantRate = calculateAmountFromRate($request->payment_method, $request->account_type, 'deposit', auth('merchant')->user()->id, $request->amount);
-
-    $currentAgent = User::where('member_code',$agent->member_code)->where('user_type','agent')->first();
-
-    $memberRate = calculateAmountFromRateForMember($request->payment_method, $request->account_type, 'deposit', $currentAgent->id, $request->amount);
-
-
-    // ✅ Get merchant's current balance
-    $mainMerchantId = $user->merchant_type == 'sub_merchant' ? $user->create_by : $user->id;
-    $mainMerchant = Merchant::find($mainMerchantId);
-    $mainMerchantBalance = $mainMerchant ? floatval($mainMerchant->balance) : 0;
-    
-    // ✅ Get sub-merchant balance if applicable
-    $subMerchantBalance = null;
-    if ($user->merchant_type == 'sub_merchant') {
-        $subMerchant = Merchant::find($user->id);
-        $subMerchantBalance = $subMerchant ? floatval($subMerchant->balance) : 0;
-    }
-
-    // ✅ Generate base data array
-    $data = [
-        'agent' => $agent->member_code,
-        'partner' => optional(getPartnerFromAgent($agent->member_code))->member_code,
-        'from_number' => $request->from_number ?? null,
-        'modem_id' => $agent->id,
-        'request_id' => generatePaymentRequestTrx(25),
-        'payment_method_trx' => $request->transaction_id,
-        'sim_id' => $request->deposit_number,
-        'trxid' => generatePaymentRequestTrx(6),
-        'amount' => $request->amount,
-        'payment_method' => $request->payment_method,
-        'merchant_id' => $user->merchant_type == 'sub_merchant' ? $user->create_by : $user->id,
-        'sub_merchant' => $user->merchant_type == 'sub_merchant' ?  $user->id : null,
-        'reference' => substr(Str::uuid()->toString(), 0, 20), // Unique reference
-        'currency' => 'BDT',
-        'callback_url' => '/', // update if needed
-        'cust_name' => $request->cust_name ?? null,
-        'cust_phone' => $request->cust_phone ?? null,
-        'cust_address' => $request->cust_address ?? null,
-        'issue_time' => Carbon::now(),
-        'ip' => $request->ip(),
-        'user_agent' => $request->userAgent(),
-        'accepted_by' => null,
-        'payment_type'=>$request->account_type,
-        'merchant_fee' => $merchantRate['general']['fee_amount'],
-        'merchant_commission' => $merchantRate['general']['commission_amount'],
-        'sub_merchant_fee' => $merchantRate['sub_merchant']['fee_amount'],
-        'sub_merchant_commission' => $merchantRate['sub_merchant']['commission_amount'],
-        'merchant_main_amount' => $merchantRate['general']['net_amount'],
-        'sub_merchant_main_amount' => $merchantRate['sub_merchant']['net_amount'],
-        'merchant_last_balance' => $mainMerchantBalance,
-        'merchant_new_balance' => $mainMerchantBalance, // Will be updated on approval
-        'sub_merchant_last_balance' => $subMerchantBalance,
-        'sub_merchant_new_balance' => $subMerchantBalance, // Will be updated on approval
-        'partner_fee' => $memberRate['member']['fee_amount'],
-        'partner_commission' => $memberRate['member']['commission_amount'],
-        'user_fee' => $memberRate['agent']['fee_amount'],
-        'user_commission' => $memberRate['agent']['commission_amount'],
-        'partner_main_amount' => $memberRate['member']['net_amount'],
-        'user_main_amount' => $memberRate['agent']['net_amount'],
-    ];
-
-    // ✅ Store to database
-    PaymentRequest::create($data);
-
-    // ✅ Redirect back with success message
-    return redirect()->back()->with('message', 'Deposit request submitted successfully.');
-}
 
 
     private function fetchMfsApi()
-{
-    try {
-        $response = Http::withToken(BalanceManagerConstant::token_key)
-            ->get(BalanceManagerConstant::URL . '/api/available-methods');
+    {
+        try {
+            $response = Http::withToken(BalanceManagerConstant::token_key)
+                ->get(BalanceManagerConstant::URL . '/api/available-methods');
 
-        if ($response->successful()) {
-            $data = $response->json();
+            if ($response->successful()) {
+                $data = $response->json();
 
-            $grouped = collect($data)->groupBy('type');
-            $result = [];
+                $grouped = collect($data)->groupBy('type');
+                $result = [];
 
-            foreach ($grouped as $type => $items) {
-                $previousPhone = Cache::get("last_used_phone_{$type}");
+                foreach ($grouped as $type => $items) {
+                    $previousPhone = Cache::get("last_used_phone_{$type}");
 
-                // If there's more than 1 item, avoid reusing the same phone
-                if ($items->count() > 1 && $previousPhone) {
-                    $filtered = $items->filter(function ($item) use ($previousPhone) {
-                        return $item['phone'] !== $previousPhone;
-                    });
+                    // If there's more than 1 item, avoid reusing the same phone
+                    if ($items->count() > 1 && $previousPhone) {
+                        $filtered = $items->filter(function ($item) use ($previousPhone) {
+                            return $item['phone'] !== $previousPhone;
+                        });
 
-                    // If all items were filtered out, fall back to original list
-                    $finalItems = $filtered->isNotEmpty() ? $filtered : $items;
-                } else {
-                    $finalItems = $items;
+                        // If all items were filtered out, fall back to original list
+                        $finalItems = $filtered->isNotEmpty() ? $filtered : $items;
+                    } else {
+                        $finalItems = $items;
+                    }
+
+                    // Pick one random item
+                    $selected = $finalItems->random();
+
+                    // Cache the current phone number
+                    Cache::put("last_used_phone_{$type}", $selected['phone'], now()->addMinutes(10));
+
+                    $result[] = $selected;
                 }
 
-                // Pick one random item
-                $selected = $finalItems->random();
-
-                // Cache the current phone number
-                Cache::put("last_used_phone_{$type}", $selected['phone'], now()->addMinutes(10));
-
-                $result[] = $selected;
+                return $result;
             }
-
-            return $result;
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch MFS API: ' . $e->getMessage());
         }
-    } catch (\Exception $e) {
-        Log::error('Failed to fetch MFS API: ' . $e->getMessage());
-    }
 
-    return [];
-}
+        return [];
+    }
 
     private function buildPaymentRequestQuery(Request $request, $user)
     {
         $query_data = PaymentRequest::with(['agent'])
-            ->whereNotNull('payment_method')
+
             ->whereNotNull('created_at');
 
         if ($user->merchant_type == 'sub_merchant') {
@@ -671,12 +675,24 @@ public function depositRequestStore(Request $request)
 
         if ($request->filled('status')) {
             switch ($request->status) {
-                case 'success': $query_data->whereIn('status', [2, 3]); break;
-                case 'rejected': $query_data->where('status', 4); break;
-                case 'waiting': $query_data->where('status', 1); break;
-                case 'pending': $query_data->where('status', 0); break;
-                case 'processing': $query_data->where('status', 5); break;
-                case 'failed': $query_data->where('status', 6); break;
+                case 'success':
+                    $query_data->whereIn('status', [2, 3]);
+                    break;
+                case 'rejected':
+                    $query_data->where('status', 4);
+                    break;
+                case 'waiting':
+                    $query_data->where('status', 1);
+                    break;
+                case 'pending':
+                    $query_data->where('status', 0);
+                    break;
+                case 'processing':
+                    $query_data->where('status', 5);
+                    break;
+                case 'failed':
+                    $query_data->where('status', 6);
+                    break;
             }
         }
 

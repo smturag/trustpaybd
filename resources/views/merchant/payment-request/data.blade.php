@@ -76,10 +76,14 @@
                 <td class="text-center">{{ ++$key }}</td>
 
                 <td class="text-center">
-                    {{ $subMerchantName }} <br>
-                    {{ $row->payment_method }}, {{ $row->sim_id }} <br>
-                    {{ $row->payment_type }} <br>
-                    <small class="text-muted">From: {{ $BMData ? $BMData->mobile : '-' }}</small>
+                    @if ($row->payment_method == null && $row->payment_method_trx == null && $row->from_number == null)
+                        <span class="badge bg-danger">Spam</span>
+                    @else
+                        {{ $subMerchantName }} <br>
+                        {{ $row->payment_method }}, {{ $row->sim_id }} <br>
+                        {{ $row->payment_type }} <br>
+                        <small class="text-muted">From: {{ $BMData ? $BMData->mobile : '-' }}</small>
+                    @endif
                 </td>
 
                 <td class="text-center">
