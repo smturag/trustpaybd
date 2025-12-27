@@ -112,6 +112,8 @@ class ReactNativeModemController extends Controller
 
         $sms_exist = smsInbox::where('sms', $msg)->count();
 
+        $smsinbxcrt = null; // Initialize variable
+
         if ($sms_exist == 0) {
             //$agent_id = $aget_udata->id;
 
@@ -150,6 +152,16 @@ class ReactNativeModemController extends Controller
         //        }
 
         $smsbodytype = '';
+
+        // Initialize all variables with default values
+        $amount = 0;
+        $number = '';
+        $trxid = '';
+        $lastbal = 0;
+        $comm = 0;
+        $fee = 0;
+        $baltype = '';
+        $sms_date = now()->format('Y-m-d H:i');
 
         /// balance manager full function start here
 
@@ -334,7 +346,7 @@ class ReactNativeModemController extends Controller
 
             // You have received Tk 2,000.00 from 01704172631. Fee Tk 0.00. Balance Tk 2,201.51. TrxID ACA8CBMVZ2 at 10/03/2023 16:36
 
-            if (str_contains($responseValue[0], 'received') && $sendcodeLower === 'bkash' && !str_contains($responseValue[0], 'payment')){
+            if (str_contains($responseValue[0], 'received') && $sendcodeLower === 'bkash' && !str_contains($responseValue[0], 'payment')) {
                 $smsbodytype = 'bkRC';
                 $baltype = 'plus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'received Tk ', ' from')));
@@ -352,19 +364,53 @@ class ReactNativeModemController extends Controller
                 $sms_date = $hours > 12 ? Carbon::createFromFormat('d/m/Y H:i', $date)->format('Y-m-d H:i') : Carbon::createFromFormat('d/m/Y h:i', $date)->format('Y-m-d H:i');
             }
 
-            //Rocket B2C: Cash-Out from A/C: 017559717268 Tk500.00 Comm:Tk2.10; A/C Balance: Tk3,741.39.TxnId: 3478851618 Date:22-JAN-23 10:08:31 am. Download https://bit.ly/nexuspa
-            if (str_contains($responseValue[1], 'Cash-Out') && $sendcodeLower === '16216') {
+            //Rocket B2C Cash-Out: Cash-Out from A/C: ***097 Tk2,009.00 Comm:Tk8.43; A/C Balance: Tk87,455.82.TxnId: 6017463139 Date:25-DEC-25 05:53:00 pm. Download https://bit.ly/nexuspay
+            if (str_contains($responseValue[0], 'Cash-Out') && $sendcodeLower === '16216') {
                 $smsbodytype = 'rccashout';
                 $baltype = 'plus';
-                $amount = floatval(str_replace(',', '', getStringBetween($msg, ' Tk', ' Comm')));
-                $number = trim(getStringBetween($msg, 'A/C: ', ' Tk'));
-                $trxid = trim(getStringBetween($msg, 'TxnId: ', ' Date:'));
-                $lastbal = trim(getStringBetween($msg, 'Balance: Tk', '.TxnId:'));
-                $lastbal = floatval(str_replace(',', '', $lastbal));
 
-                $rocket_date = getStringBetween($msg, 'Date:', '. Download');
-                // $sms_date = Carbon::createFromFormat("d-M-y h:i a", $rocket_date)->format("Y-m-d H:i");
-                $sms_date = Carbon::parse($rocket_date)->format('Y-m-d H:i');
+                // Amount - handle formats like "Tk2,009.00"
+                $amount = floatval(str_replace(',', '', getStringBetween($msg, ' Tk', ' Comm')));
+
+                // Account number - handle both "A/C: ***097" and "A/C: 017559717268"
+                $number = trim(getStringBetween($msg, 'A/C: ', ' Tk'));
+
+                // Commission - extract from "Comm:Tk8.43"
+                $comm = floatval(str_replace(',', '', getStringBetween($msg, 'Comm:Tk', ';')));
+
+                // Transaction ID
+                $trxid = trim(getStringBetween($msg, 'TxnId: ', ' Date:'));
+
+                // Last balance - handle "A/C Balance: Tk87,455.82"
+                $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'Balance: Tk', '.TxnId')));
+
+                // Date string - extract date portion
+                preg_match('/Date:(\d{2}-[A-Z]{3}-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:am|pm))/i', $msg, $dateMatch);
+                $rocket_date = $dateMatch[1] ?? null;
+
+                // Convert Rocket date to standard format (Y-m-d H:i)
+                if ($rocket_date) {
+                    try {
+                        $sms_date = Carbon::createFromFormat('d-M-y h:i:s a', $rocket_date)->format('Y-m-d H:i');
+                    } catch (\Exception $e) {
+                        Log::error('Rocket cashout date parsing failed: ' . $rocket_date . ' | ' . $e->getMessage());
+                        $sms_date = now()->format('Y-m-d H:i');
+                    }
+                } else {
+                    $sms_date = now()->format('Y-m-d H:i');
+                }
+
+                // Debug logging
+                Log::info('Rocket Cash-Out SMS Parsed', [
+                    'amount' => $amount,
+                    'number' => $number,
+                    'comm' => $comm,
+                    'lastbal' => $lastbal,
+                    'trxid' => $trxid,
+                    'sms_date' => $sms_date,
+                    'smsbodytype' => $smsbodytype,
+                    'baltype' => $baltype
+                ]);
             }
 
             //upay cashout :  You have received Cash-out of Tk. 3940.00 from 01576987382. Comm: TK. 16.1343. Balance Tk. 6568.82. TrxID 01JYG4GET7 at 24/06/2025 10:52.
@@ -398,60 +444,126 @@ class ReactNativeModemController extends Controller
             }
 
             /*
-            * Tk20.00 received from A/C:*842 Fee:Tk0, Your A/C Balance: Tk120.00 TxnId:5829515036 Date:20-OCT-25 06:19:20 pm. Download https://bit.ly/nexuspay
-            */
+             * Rocket Receive SMS - rcRC Format (Old format with Download link)
+             * Tk100.00 received from A/C:***946 Fee:Tk0, Your A/C Balance: Tk100.00 TxnId:6022415176 Date:27-DEC-25 08:43:52 pm. Download https://bit.ly/nexuspay
+             */
 
-            if (str_contains($responseValue[1], 'received') && $sendcodeLower === '16216') {
-                $smsbodytype = 'rcpayment'; // Rocket Receive SMS
+            if (str_contains($responseValue[0], 'received') && $sendcodeLower === '16216' && str_contains($msg, 'Download')) {
+                $smsbodytype = 'rcRC'; // Rocket Receive SMS (Old format)
                 $baltype = 'plus';
+                $comm = 0;
 
-                // Amount
-                $amount = floatval(str_replace(',', '', getStringBetween($msg, 'Tk', ' received')));
+                // Amount - handle both "Tk.100.00" and "Tk100.00" formats
+                $amountStr = getStringBetween($msg, 'Tk', ' received');
+                $amount = floatval(str_replace(',', '', trim($amountStr, '.')));
 
                 // Account number (A/C)
-                $number = trim(getStringBetween($msg, 'A/C:', ' Fee:'));
+                $number = trim(getStringBetween($msg, 'A/C:', ' Fee'));
 
                 // Fee
-                $fee = floatval(str_replace(',', '', getStringBetween($msg, 'Fee:Tk', ', Your')));
+                $fee = floatval(str_replace(',', '', getStringBetween($msg, 'Fee:Tk', ',')));
 
                 // Last balance
-                $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'Your A/C Balance: Tk', '. TxnId:')));
+                $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'Your A/C Balance: Tk', ' TxnId')));
 
                 // Transaction ID
                 $trxid = trim(getStringBetween($msg, 'TxnId:', ' Date:'));
 
-                // Date string
-                $rocket_date = trim(getStringBetween($msg, 'Date:', '. Download'));
+                // Date string - extract date portion
+                preg_match('/Date:(\d{2}-[A-Z]{3}-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:am|pm))/i', $msg, $dateMatch);
+                $rocket_date = $dateMatch[1] ?? null;
 
                 // Convert Rocket date to standard format (Y-m-d H:i)
-                $sms_date = Carbon::createFromFormat('d-M-y h:i:s a', $rocket_date)->format('Y-m-d H:i');
+                if ($rocket_date) {
+                    try {
+                        $sms_date = Carbon::createFromFormat('d-M-y h:i:s a', $rocket_date)->format('Y-m-d H:i');
+                    } catch (\Exception $e) {
+                        Log::error('Rocket rcRC date parsing failed: ' . $rocket_date . ' | ' . $e->getMessage());
+                        $sms_date = now()->format('Y-m-d H:i');
+                    }
+                } else {
+                    $sms_date = now()->format('Y-m-d H:i');
+                }
+
+                // Debug logging
+                Log::info('Rocket rcRC SMS Parsed', [
+                    'amount' => $amount,
+                    'number' => $number,
+                    'fee' => $fee,
+                    'lastbal' => $lastbal,
+                    'trxid' => $trxid,
+                    'sms_date' => $sms_date,
+                    'smsbodytype' => $smsbodytype,
+                    'baltype' => $baltype
+                ]);
             }
 
-             /*
-             * Tk20.00 received from A/C:*842 Fee:Tk0, Your A/C Balance: Tk120.00 TxnId:5829515036 Date:20-OCT-25 06:19:20 pm. Download https://bit.ly/nexuspay
+            /*
+             * Rocket Receive SMS - rcpayment Format (New format with Ref No and NetBal)
+             * Tk.20.00 received from A/C:***946 Ref No: NA Fee: Tk.00 NetBal: Tk41.00 TxnId: 6022164589 Date:27-DEC-25 07:17:16 pm.
              */
 
-            if (str_contains($responseValue[1], 'received') && $sendcodeLower === '16216') {
-                $smsbodytype = 'rcRC';
+            if (str_contains($responseValue[0], 'received') && $sendcodeLower === '16216' && !str_contains($msg, 'Download')) {
+                $smsbodytype = 'rcpayment'; // Rocket Receive SMS (New format)
                 $baltype = 'plus';
                 $comm = 0;
 
-                // Extract using your helper
-                $amount = floatval(str_replace(',', '', getStringBetweenForMassage($msg, 'Tk', ' received')));
-                $account = trim(getStringBetweenForMassage($msg, 'A/C:*', ' Fee'));
-                $fee = floatval(str_replace(',', '', getStringBetweenForMassage($msg, 'Fee:Tk', ', Your')));
-                $lastbal = floatval(str_replace(',', '', getStringBetweenForMassage($msg, 'Balance: Tk', ' TxnId')));
-                $trxid = trim(getStringBetweenForMassage($msg, 'TxnId:', ' Date:'));
+                // Amount - handle both "Tk.20.00" and "Tk20.00" formats
+                $amountStr = getStringBetween($msg, 'Tk', ' received');
+                $amount = floatval(str_replace(',', '', trim($amountStr, '.')));
 
-                // Extract and convert date format
-                preg_match('/Date:(\d{2}-[A-Z]{3}-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:am|pm))/i', $msg, $dateMatch);
-                $dateStr = $dateMatch[1] ?? null;
-                $sms_date = null;
+                // Account number (A/C) - handle both "A/C:***946" and "A/C:*842" formats
+                $number = trim(getStringBetween($msg, 'A/C:', ' '));
 
-                if ($dateStr) {
-                    // Convert '20-OCT-25 06:19:20 pm' → '2025-10-20 18:19:20'
-                    $sms_date = Carbon::createFromFormat('d-M-y h:i:s a', $dateStr)->format('Y-m-d H:i:s');
+                // Fee - handle both "Fee: Tk.00" and "Fee:Tk0" formats
+                if (str_contains($msg, 'Fee: Tk')) {
+                    $fee = floatval(str_replace(',', '', getStringBetween($msg, 'Fee: Tk', ' ')));
+                } else {
+                    $fee = floatval(str_replace(',', '', getStringBetween($msg, 'Fee:Tk', ' ')));
                 }
+
+                // Last balance - handle both "NetBal: Tk41.00" and "Your A/C Balance: Tk120.00" formats
+                if (str_contains($msg, 'NetBal: Tk')) {
+                    $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'NetBal: Tk', ' TxnId')));
+                } elseif (str_contains($msg, 'Your A/C Balance: Tk')) {
+                    $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'Your A/C Balance: Tk', '. TxnId')));
+                } else {
+                    $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'Balance: Tk', ' TxnId')));
+                }
+
+                // Transaction ID
+                $trxid = trim(getStringBetween($msg, 'TxnId: ', ' Date:'));
+                if (empty($trxid)) {
+                    $trxid = trim(getStringBetween($msg, 'TxnId:', ' Date:'));
+                }
+
+                // Date string - extract date portion
+                preg_match('/Date:(\d{2}-[A-Z]{3}-\d{2}\s\d{2}:\d{2}:\d{2}\s(?:am|pm))/i', $msg, $dateMatch);
+                $rocket_date = $dateMatch[1] ?? null;
+
+                // Convert Rocket date to standard format (Y-m-d H:i)
+                if ($rocket_date) {
+                    try {
+                        $sms_date = Carbon::createFromFormat('d-M-y h:i:s a', $rocket_date)->format('Y-m-d H:i');
+                    } catch (\Exception $e) {
+                        Log::error('Rocket rcpayment date parsing failed: ' . $rocket_date . ' | ' . $e->getMessage());
+                        $sms_date = now()->format('Y-m-d H:i');
+                    }
+                } else {
+                    $sms_date = now()->format('Y-m-d H:i');
+                }
+
+                // Debug logging
+                Log::info('Rocket rcpayment SMS Parsed', [
+                    'amount' => $amount,
+                    'number' => $number,
+                    'fee' => $fee,
+                    'lastbal' => $lastbal,
+                    'trxid' => $trxid,
+                    'sms_date' => $sms_date,
+                    'smsbodytype' => $smsbodytype,
+                    'baltype' => $baltype
+                ]);
             }
 
             /*
@@ -555,8 +667,8 @@ class ReactNativeModemController extends Controller
             if ($bmcount == 0) {
                 $getbalancedata = BalanceManager::where('sender', $sendcode)->where('sim', $sim_number)->where('deviceid', $deviceid)->where('simslot', $dbinsertsim)->orderBy('id', 'desc')->first();
 
-                $getbmlastbaldb = $getbalancedata->lastbal;
-
+                // Initialize variables with default values if no previous balance record exists
+                $getbmlastbaldb = $getbalancedata ? $getbalancedata->lastbal : 0;
                 $getbmlastbal = intval($getbmlastbaldb);
 
                 if ($baltype == 'plus') {
@@ -609,7 +721,7 @@ class ReactNativeModemController extends Controller
                     'sms_body' => $msg,
                     'simslot' => $dbinsertsim,
                     'deviceid' => $deviceid,
-                    'telco' => $simoprt,
+                    'telco' => $getoperator,
                     'commission' => $comm,
                     'sms_time' => $sms_date,
                     'smbal' => $courrentbmbalnumber,
@@ -832,7 +944,7 @@ class ReactNativeModemController extends Controller
                 }
                 if (!empty($sim_number2)) {
 
-                        $sim_2_transaction_type = $sim_2_transaction_type ?? 'P2A'; // fallback if not set
+                    $sim_2_transaction_type = $sim_2_transaction_type ?? 'P2A'; // fallback if not set
 
                     // Check if 'desktop' exists in modem details (case-insensitive)
                     if (strpos(strtolower($modem_details), 'desktop') !== false) {
