@@ -34,9 +34,19 @@ class SettingsController extends Controller
         $validatedData = $request->validate([
             'AppName' => 'required|string|max:255',
             'AppLogo' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB Max
+            'favicon' => 'image|mimes:jpeg,png,jpg,gif,ico|max:1024', // 1MB Max
+            'email' => 'nullable|email|max:255',
+            'telegram_id' => 'nullable|string|max:255',
         ]);
 
         $brandName = $request->input('AppName');
+        $settings = [
+            'AppName' => $brandName,
+            'wallet_payment_status' => $request->wallet_payment_status,
+            'support_whatsapp_number' => $request->support_whatsapp_number,
+            'email' => $request->email,
+            'telegram_id' => $request->telegram_id,
+        ];
 
         if ($request->hasFile('AppLogo')) {
             // Get the file from the request
@@ -54,19 +64,26 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($oldImage);
             }
 
-            // Update the settings with the new image path
-            $settings = [
-                'AppLogo' => $filePath,
-                'wallet_payment_status' => $request->wallet_payment_status,
-                'support_whatsapp_number' => $request->support_whatsapp_number,
-            ];
-        } else {
-            // Only update the brand name if no new image is uploaded
-            $settings = [
-                'AppName' => $brandName,
-                'wallet_payment_status' => $request->wallet_payment_status,
-                'support_whatsapp_number' => $request->support_whatsapp_number,
-            ];
+            $settings['AppLogo'] = $filePath;
+        }
+
+        if ($request->hasFile('favicon')) {
+            // Get the file from the request
+            $file = $request->file('favicon');
+
+            // Define the path to store the file
+            $path = 'uploads/brand_images';
+
+            // Store the file and get the path
+            $filePath = $file->store($path, 'public');
+
+            // Optionally, delete the old favicon if it exists
+            $oldFavicon = app_config('favicon');
+            if ($oldFavicon) {
+                Storage::disk('public')->delete($oldFavicon);
+            }
+
+            $settings['favicon'] = $filePath;
         }
 
         // dd($settings);

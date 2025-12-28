@@ -262,12 +262,48 @@ class AdminMerchant extends Controller
 
     }
 
-public function editFees($merchantId) 
+public function editFees(Request $request, $merchantId) 
     {
         $merchant = Merchant::with('merchant_rate.operator')->findOrFail($merchantId);
-        $operators = MfsOperator::where('status',1)->get();
+        
+        // Get filter parameters
+        $operatorType = $request->get('operator_type');
+        $action = $request->get('action');
+        $operatorId = $request->get('operator_id');
+        
+        // Get all operators (raw data)
+        $allOperatorsRaw = MfsOperator::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+        
+        // Remove duplicates by name for dropdown only
+        $allOperators = $allOperatorsRaw->unique('name')->values();
+        
+        // Build query with filters for display - show ALL operators including duplicates
+        $query = MfsOperator::where('status',1);
+        
+        // If operator selected, find by name to show all types (p2p, p2a, p2c)
+        if ($operatorId) {
+            $selectedOperator = MfsOperator::find($operatorId);
+            if ($selectedOperator) {
+                $query->where('name', $selectedOperator->name);
+            }
+        }
+        
+        if ($operatorType) {
+            $query->where('type', $operatorType);
+        }
+        
+        // Get all operators without removing duplicates - each may have different fees
+        $operators = $query->orderBy('name', 'asc')->orderBy('type', 'asc')->get();
+        
+        // Get unique operator types for filter dropdown
+        $operatorTypes = MfsOperator::where('status', 1)
+            ->distinct()
+            ->pluck('type')
+            ->toArray();
 
-        return view('admin.merchant.edit_fees', compact('merchant','operators'));
+        return view('admin.merchant.edit_fees', compact('merchant','operators', 'allOperators', 'operatorTypes', 'operatorType', 'operatorId', 'action'));
     }
 
     public function updateFees(Request $request, $merchantId)

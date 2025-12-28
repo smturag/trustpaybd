@@ -4,20 +4,13 @@
     <!-- Prevent Flash of Unstyled Content (FOUC) by applying theme before any content loads -->
     <script>
         (function() {
-            // Check if dark mode preference exists in local storage
-            var isDarkMode = localStorage.getItem('darkModePreference') === 'true';
+            // Check if dark mode is enabled
+            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
 
-            // Apply the theme immediately to the html element
-            document.documentElement.className = isDarkMode ? 'dark-theme' : 'light-theme';
-
-            // Also add a class to the body when it's created
-            document.addEventListener('DOMContentLoaded', function() {
-                if (isDarkMode) {
-                    document.body.classList.add('dark-theme');
-                } else {
-                    document.body.classList.add('light-theme');
-                }
-            });
+            // Apply dark mode immediately for Tailwind
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+            }
         })();
     </script>
     <meta charset="utf-8">
@@ -26,6 +19,43 @@
     <meta name="csrf-token" content="{{ csrf_token() }}"/>
 
     <link rel="icon" href="{{ asset('static/backend/images/favicon-32x32.png') }}" type="image/png"/>
+
+    <!-- Tailwind CSS with Custom Configuration -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                    },
+                    animation: {
+                        'gradient': 'gradient 3s ease infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    boxShadow: {
+                        'glow': '0 0 20px rgba(59, 130, 246, 0.5)',
+                        'glow-lg': '0 0 30px rgba(59, 130, 246, 0.6)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Alpine.js for interactive components -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <!-- Critical CSS for dark mode to prevent flash -->
     <style>
@@ -37,33 +67,66 @@
             transition: none !important;
         }
 
-        html.dark-theme {
-            background-color: #070d0e;
-            color: #e4e5e6;
+        /* Tailwind dark mode styles */
+        html.dark {
+            background-color: #111827;
+            color-scheme: dark;
         }
 
-        html.dark-theme body {
-            background-color: #070d0e;
-            color: #e4e5e6;
+        html.dark body {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        
+        html:not(.dark) {
+            background-color: #f9fafb;
+            color-scheme: light;
+        }
+        
+        html:not(.dark) body {
+            background-color: #f9fafb;
+            color: #111827;
         }
 
-        html.dark-theme .wrapper,
-        html.dark-theme .page-wrapper,
-        html.dark-theme .page-content {
-            background-color: #070d0e;
+        /* Tailwind dark mode wrapper backgrounds */
+        html.dark .wrapper,
+        html.dark .page-wrapper,
+        html.dark .page-content {
+            background-color: #111827;
         }
 
-        html.dark-theme .sidebar-wrapper {
-            background-color: #12181a;
+        html.dark .sidebar-wrapper {
+            background-color: #1f2937;
         }
 
-        html.dark-theme .card {
-            background-color: #12181a;
-        }
-
-        html.dark-theme .topbar {
-            background-color: #12181a;
+        html.dark .topbar {
+            background-color: #1f2937;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Force dark mode for dashboard widgets */
+        html.dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+        
+        html.dark .text-gray-900 {
+            color: #f3f4f6 !important;
+        }
+        
+        html.dark .text-gray-500 {
+            color: #9ca3af !important;
+        }
+        
+        html.dark .text-gray-600 {
+            color: #d1d5db !important;
+        }
+        
+        html.dark .border-gray-100 {
+            border-color: #374151 !important;
+        }
+        
+        html.dark .bg-gray-50 {
+            background-color: rgba(55, 65, 81, 0.5) !important;
         }
 
         /* Ensure page content is never hidden behind the sidebar */
@@ -194,23 +257,18 @@
 
 </head>
 
-<body class="no-transition">
-<script>
-    // Remove the no-transition class after the page has loaded
-    window.addEventListener('load', function() {
-        document.body.classList.remove('no-transition');
-    });
-</script>
-<div class="wrapper">
-    @include('admin.layouts.admin_sidebar')
-	 <div class="page-wrapper">
-        <div class="page-content">
-    @yield('content')
-	</div>
-	</div>
-    @include('admin.layouts.admin_header')
-    @include('admin.layouts.admin_footer')
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
 
+<!-- Include Enhanced Sidebar -->
+@include('admin.layouts.admin_sidebar')
+
+<!-- Main Content Area with Premium Design -->
+<div id="mainContent" class="lg:ml-64 transition-all duration-300 min-h-screen bg-gray-50 dark:bg-gray-900">
+    @include('admin.layouts.admin_header')
+    <div class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900">
+        @yield('content')
+    </div>
+    @include('admin.layouts.admin_footer')
 </div>
 
 
@@ -300,10 +358,106 @@ $("button[type=submit]").empty().html("Please wait...");
                 }
             }
         }
-
-
     </script>
 
+    <!-- Sidebar Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mobileToggle = document.getElementById('mobileSidebarToggle');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity duration-300 opacity-0';
+            document.body.appendChild(overlay);
+
+            function openSidebar() {
+                if(sidebar) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => {
+                        overlay.classList.remove('opacity-0');
+                    }, 10);
+                }
+            }
+
+            function closeSidebar() {
+                if(sidebar) {
+                    sidebar.classList.remove('translate-x-0');
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.add('opacity-0');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                    }, 300);
+                }
+            }
+
+            if (mobileToggle) {
+                mobileToggle.addEventListener('click', openSidebar);
+            }
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', closeSidebar);
+            }
+
+            overlay.addEventListener('click', closeSidebar);
+        });
+    </script>
+
+    <!-- Dark Mode Toggle Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        
+        if (darkModeToggle) {
+            // Check if dark mode is enabled
+            const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+            
+            // Apply dark mode on page load
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                updateDarkModeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateDarkModeIcon(false);
+            }
+            
+            // Toggle dark mode on button click
+            darkModeToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const isCurrentlyDark = document.documentElement.classList.contains('dark');
+                
+                if (isCurrentlyDark) {
+                    // Switch to light mode
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('darkMode', 'disabled');
+                    updateDarkModeIcon(false);
+                } else {
+                    // Switch to dark mode
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('darkMode', 'enabled');
+                    updateDarkModeIcon(true);
+                }
+            });
+        }
+        
+        // Update icon based on current mode
+        function updateDarkModeIcon(isDark) {
+            const icon = darkModeToggle ? darkModeToggle.querySelector('svg') : null;
+            if (icon) {
+                if (isDark) {
+                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
+                } else {
+                    icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>';
+                }
+            }
+        }
+    });
+    </script>
 
 <!--<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>-->
 </body>

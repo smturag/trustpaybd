@@ -23,6 +23,10 @@ use App\Http\Controllers\Admin\MobcashController;
 use App\Http\Controllers\Admin\DepositController;
 use App\Http\Controllers\Admin\DatabaseUpdateController;
 use App\Http\Controllers\Admin\MigrationController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\AdminManagementController;
+use App\Http\Controllers\Admin\PricingPlanController;
 
 Route::middleware(['verify'])->group(function () {
     Route::group(['prefix' => 'admin'], function () {
@@ -43,131 +47,137 @@ Route::middleware(['verify'])->group(function () {
 
         Route::middleware(['admin'])->group(function () {
             /// user management
-            Route::any('/dashboard', [AdminController::class, 'dashboard'])->name('admin_dashboard');
-            Route::any('/reset_balance', [AdminController::class, 'reset_balance'])->name('reset_balance');
+            Route::any('/dashboard', [AdminController::class, 'dashboard'])->middleware('permission:view-dashboard')->name('admin_dashboard');
+            Route::any('/reset_balance', [AdminController::class, 'reset_balance'])->middleware('permission:reset-balance')->name('reset_balance');
 
             Route::any('/adminlogout', [AdminLogin::class, 'logout'])->name('adminlogout');
 
-            Route::controller(MemberController::class)->group(function () {
+            Route::middleware('permission:view-users')->controller(MemberController::class)->group(function () {
                 Route::any('/userList', 'index')->name('userList');
-                Route::any('/agent_active/{agent_id}', 'agent_active')->name('agent_active');
-                Route::any('/userAdd', 'userFrm')->name('userAdd');
-                Route::any('/userAddAction', 'userAddAction')->name('userAddAction');
-                Route::any('/user_edit/{id}', 'edit')->name('user_edit');
-                Route::post('/user-update/{id}', 'update')->name('user_update');
-                Route::delete('/user-delete/{id}', 'delete')->name('admin_user_delete');
-                Route::any('/agent_add_balance/{id}', 'agent_add_balance')->name('agent_add_balance');
-                Route::get('/user-charge/{user_id}', 'editFees')->name('userCharge');
-                Route::post('user/{id}/fees', 'updateFees')->name('member.updateFees');
+                Route::any('/agent_active/{agent_id}', 'agent_active')->middleware('permission:activate-users')->name('agent_active');
+                Route::any('/userAdd', 'userFrm')->middleware('permission:create-users')->name('userAdd');
+                Route::any('/userAddAction', 'userAddAction')->middleware('permission:create-users')->name('userAddAction');
+                Route::any('/user_edit/{id}', 'edit')->middleware('permission:edit-users')->name('user_edit');
+                Route::post('/user-update/{id}', 'update')->middleware('permission:edit-users')->name('user_update');
+                Route::delete('/user-delete/{id}', 'delete')->middleware('permission:delete-users')->name('admin_user_delete');
+                Route::any('/agent_add_balance/{id}', 'agent_add_balance')->middleware('permission:manage-user-balance')->name('agent_add_balance');
+                Route::get('/user-charge/{user_id}', 'editFees')->middleware('permission:manage-user-fees')->name('userCharge');
+                Route::post('user/{id}/fees', 'updateFees')->middleware('permission:manage-user-fees')->name('member.updateFees');
 
             });
 
-            Route::controller(\App\Http\Controllers\Admin\AdminCustomerController::class)->group(function () {
+            Route::middleware('permission:view-customers')->controller(\App\Http\Controllers\Admin\AdminCustomerController::class)->group(function () {
                 Route::any('/customerList', 'index')->name('customerList');
-                Route::any('/customerAdd', 'customerFrm')->name('customerAdd');
-                Route::any('/customerAddAction', 'customerAddAction')->name('customerAddAction');
-                Route::any('/customer_edit/{id}', 'edit')->name('customer_edit');
-                Route::post('/customer_update/{id}', 'update')->name('customer_update');
-                Route::delete('/customer-delete/{id}', 'delete')->name('customer_delete');
-                Route::any('/customer_add_balance/{id}', 'customer_add_balance')->name('customer_add_balance');
+                Route::any('/customerAdd', 'customerFrm')->middleware('permission:create-customers')->name('customerAdd');
+                Route::any('/customerAddAction', 'customerAddAction')->middleware('permission:create-customers')->name('customerAddAction');
+                Route::any('/customer_edit/{id}', 'edit')->middleware('permission:edit-customers')->name('customer_edit');
+                Route::post('/customer_update/{id}', 'update')->middleware('permission:edit-customers')->name('customer_update');
+                Route::delete('/customer-delete/{id}', 'delete')->middleware('permission:delete-customers')->name('customer_delete');
+                Route::any('/customer_add_balance/{id}', 'customer_add_balance')->middleware('permission:manage-customer-balance')->name('customer_add_balance');
             });
 
             //merchant
-            Route::any('/merchantList', [AdminMerchant::class, 'index'])->name('merchantList');
-            Route::any('/merchantAdd', [AdminMerchant::class, 'merchantAdd'])->name('merchantAdd');
-            Route::any('/merchantAddAction', [AdminMerchant::class, 'AddAction'])->name('merchantAddAction');
-            Route::get('/loginAsMerchant/{id}', [AdminMerchant::class, 'loginAsMerchant'])->name('admin.loginAsMerchant');
+            Route::middleware('permission:view-merchants')->group(function () {
+                Route::any('/merchantList', [AdminMerchant::class, 'index'])->name('merchantList');
+                Route::any('/merchantAdd', [AdminMerchant::class, 'merchantAdd'])->middleware('permission:create-merchants')->name('merchantAdd');
+                Route::any('/merchantAddAction', [AdminMerchant::class, 'AddAction'])->middleware('permission:create-merchants')->name('merchantAddAction');
+                Route::get('/loginAsMerchant/{id}', [AdminMerchant::class, 'loginAsMerchant'])->middleware('permission:login-as-merchant')->name('admin.loginAsMerchant');
 
-            Route::any('/merchant_charge/{merchantId}', [AdminMerchant::class, 'editFees'])->name('merchant_charge');
+                Route::any('/merchant_charge/{merchantId}', [AdminMerchant::class, 'editFees'])->middleware('permission:manage-merchant-fees')->name('merchant_charge');
 
-            Route::post('merchant/{id}/fees', [AdminMerchant::class, 'updateFees'])->name('updateFees');
+                Route::post('merchant/{id}/fees', [AdminMerchant::class, 'updateFees'])->middleware('permission:manage-merchant-fees')->name('updateFees');
 
-            Route::any('/merchant_edit/{id}', [AdminMerchant::class, 'edit'])->name('merchant_edit');
-            Route::post('/merchant_update/{id}', [AdminMerchant::class, 'update'])->name('merchant_update');
+                Route::any('/merchant_edit/{id}', [AdminMerchant::class, 'edit'])->middleware('permission:edit-merchants')->name('merchant_edit');
+                Route::post('/merchant_update/{id}', [AdminMerchant::class, 'update'])->middleware('permission:edit-merchants')->name('merchant_update');
 
-            Route::delete('/merchant_delete/{id}', [AdminMerchant::class, 'delete'])->name('merchant_delete');
-            Route::any('/merchant_add_balance/{id}', [AdminMerchant::class, 'merchant_add_balance'])->name('merchant_add_balance');
-
-            Route::controller(\App\Http\Controllers\Admin\WalletTransactionController::class)->group(function () {
-                Route::get('wallet-transaction-list', 'index')->name('admin.wallet.transactions');
-                Route::delete('/transaction-delete/{id}', 'delete')->name('admin.wallet.transaction_delete');
-                Route::any('/change-transaction-status/{id}', 'change_transaction_status')->name('admin.wallet.change-transaction-status');
-                Route::post('change_wallet_status', 'change_wallet_status')->name('admin.wallet.change_status');
+                Route::delete('/merchant_delete/{id}', [AdminMerchant::class, 'delete'])->middleware('permission:delete-merchants')->name('merchant_delete');
+                Route::any('/merchant_add_balance/{id}', [AdminMerchant::class, 'merchant_add_balance'])->middleware('permission:manage-merchant-balance')->name('merchant_add_balance');
             });
 
-            Route::get('merchant/payment-request', [MerchantPaymentRequestController::class, 'index'])->name('admin.merchant.payment-request');
-            // Route::get('merchant/payment-request/approved-payment-request/{id}', [MerchantPaymentRequestController::class, 'approved_payment_request'])->name('admin.merchant.approved_payment_request');
-            // Route::post('/merchant/payment-request/reject-payment-request/{id}', [MerchantPaymentRequestController::class, 'reject_payment_request'])->name('reject_payment_request');
-            // Route::post('merchant/payment-request/approve-payment-request/{id}', [MerchantPaymentRequestController::class, 'approve_payment_request'])->name('admin.merchant.approve_payment_request');
-            Route::post('/reject-payment', [MerchantPaymentRequestController::class, 'reject_payment_request'])->name('reject-payment-request');
-            Route::post('/approve-payment/{id}', [MerchantPaymentRequestController::class, 'approve_payment_request'])->name('approve-payment-request');
-            Route::get('/pending-payment/{id}', [MerchantPaymentRequestController::class, 'pending_payment_request'])->name('pending-payment-request');
-            Route::post('/payment/spam', [MerchantPaymentRequestController::class, 'markAsSpam'])->name('payment.spam');
+            Route::middleware('permission:view-wallet-transactions')->controller(\App\Http\Controllers\Admin\WalletTransactionController::class)->group(function () {
+                Route::get('wallet-transaction-list', 'index')->name('admin.wallet.transactions');
+                Route::delete('/transaction-delete/{id}', 'delete')->middleware('permission:delete-wallet-transactions')->name('admin.wallet.transaction_delete');
+                Route::any('/change-transaction-status/{id}', 'change_transaction_status')->middleware('permission:change-wallet-transaction-status')->name('admin.wallet.change-transaction-status');
+                Route::post('change_wallet_status', 'change_wallet_status')->middleware('permission:change-wallet-transaction-status')->name('admin.wallet.change_status');
+            });
+
+            Route::middleware('permission:view-payment-requests')->group(function () {
+                Route::get('merchant/payment-request', [MerchantPaymentRequestController::class, 'index'])->name('admin.merchant.payment-request');
+                Route::post('/reject-payment', [MerchantPaymentRequestController::class, 'reject_payment_request'])->middleware('permission:reject-payment-requests')->name('reject-payment-request');
+                Route::post('/approve-payment/{id}', [MerchantPaymentRequestController::class, 'approve_payment_request'])->middleware('permission:approve-payment-requests')->name('approve-payment-request');
+                Route::get('/pending-payment/{id}', [MerchantPaymentRequestController::class, 'pending_payment_request'])->middleware('permission:pending-payment-requests')->name('pending-payment-request');
+                Route::post('/payment/spam', [MerchantPaymentRequestController::class, 'markAsSpam'])->middleware('permission:mark-payment-spam')->name('payment.spam');
+            });
             
             // Merchant Crypto Payout Routes
-            Route::controller(\App\Http\Controllers\Admin\MerchantPayoutController::class)->prefix('merchant-payout')->group(function () {
+            Route::middleware('permission:view-merchant-payouts')->controller(\App\Http\Controllers\Admin\MerchantPayoutController::class)->prefix('merchant-payout')->group(function () {
                 Route::get('/', 'index')->name('admin.merchant-payout.index');
 
                 Route::get('/{id}', 'show')->name('admin.merchant-payout.show');
-                Route::get('/{id}/approve-form', 'approveForm')->name('admin.merchant-payout.approve-form');
-                Route::post('/{id}/approve', 'approve')->name('admin.merchant-payout.approve');
-                Route::get('/{id}/reject-form', 'rejectForm')->name('admin.merchant-payout.reject-form');
-                Route::post('/{id}/reject', 'reject')->name('admin.merchant-payout.reject');
-                Route::post('/{id}/update-status', 'updateStatus')->name('admin.merchant-payout.update-status');
+                Route::get('/{id}/approve-form', 'approveForm')->middleware('permission:approve-merchant-payouts')->name('admin.merchant-payout.approve-form');
+                Route::post('/{id}/approve', 'approve')->middleware('permission:approve-merchant-payouts')->name('admin.merchant-payout.approve');
+                Route::get('/{id}/reject-form', 'rejectForm')->middleware('permission:reject-merchant-payouts')->name('admin.merchant-payout.reject-form');
+                Route::post('/{id}/reject', 'reject')->middleware('permission:reject-merchant-payouts')->name('admin.merchant-payout.reject');
+                Route::post('/{id}/update-status', 'updateStatus')->middleware('permission:update-merchant-payout-status')->name('admin.merchant-payout.update-status');
             });
             
             // Currency Management Routes
-            Route::controller(\App\Http\Controllers\Admin\CurrencyRateController::class)->prefix('currency')->group(function () {
+            Route::middleware('permission:view-currency')->controller(\App\Http\Controllers\Admin\CurrencyRateController::class)->prefix('currency')->group(function () {
                 Route::get('/', 'index')->name('admin.currency.index');
-                Route::get('/create', 'create')->name('admin.currency.create');
-                Route::post('/', 'store')->name('admin.currency.store');
-                Route::get('/{id}/edit', 'edit')->name('admin.currency.edit');
-                Route::put('/{id}', 'update')->name('admin.currency.update');
-                Route::delete('/{id}', 'destroy')->name('admin.currency.destroy');
+                Route::get('/create', 'create')->middleware('permission:create-currency')->name('admin.currency.create');
+                Route::post('/', 'store')->middleware('permission:create-currency')->name('admin.currency.store');
+                Route::get('/{id}/edit', 'edit')->middleware('permission:edit-currency')->name('admin.currency.edit');
+                Route::put('/{id}', 'update')->middleware('permission:edit-currency')->name('admin.currency.update');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete-currency')->name('admin.currency.destroy');
             });
             
             //modem inbox
-            Route::get('/modem_list', [AdminModem::class, 'modemList'])->name('admin_modemList');
-            Route::delete('/modem_delete/{id}', [AdminModem::class, 'delete'])->name('modem_delete');
-            Route::any('/modem_set_merchant/{id}', [AdminModem::class, 'modem_set_merchant'])->name('modem_set_merchant');
-            Route::any('/modem_for_merchant_saveAction', [AdminModem::class, 'modem_for_merchant_saveAction'])->name('modem_for_merchant_saveAction');
-            Route::get('/modem_operating_status/{modem_id}/{status}', [AdminModem::class, 'modem_operating_status'])->name('admin.modem_operating_status');
-            Route::get('/modem_operating_service_status/{modem_id}/{status}', [AdminModem::class, 'modem_operating_service_status'])->name('admin.modem_operating_service_status');
+            Route::middleware('permission:view-modems')->group(function () {
+                Route::get('/modem_list', [AdminModem::class, 'modemList'])->name('admin_modemList');
+                Route::delete('/modem_delete/{id}', [AdminModem::class, 'delete'])->middleware('permission:delete-modems')->name('modem_delete');
+                Route::any('/modem_set_merchant/{id}', [AdminModem::class, 'modem_set_merchant'])->middleware('permission:set-modem-merchant')->name('modem_set_merchant');
+                Route::any('/modem_for_merchant_saveAction', [AdminModem::class, 'modem_for_merchant_saveAction'])->middleware('permission:set-modem-merchant')->name('modem_for_merchant_saveAction');
+                Route::get('/modem_operating_status/{modem_id}/{status}', [AdminModem::class, 'modem_operating_status'])->middleware('permission:change-modem-status')->name('admin.modem_operating_status');
+                Route::get('/modem_operating_service_status/{modem_id}/{status}', [AdminModem::class, 'modem_operating_service_status'])->middleware('permission:change-modem-status')->name('admin.modem_operating_service_status');
+            });
             //modem finish
 
             // balance manager
-            Route::get('/balance-manager/{status}/{agent_number?}', [AdminBm::class, 'balance_manager'])->name('balance_manager');
-            Route::any('/approved-balance-manager/{id}', [AdminBm::class, 'approved_balance_manager'])->name('approved_balance_manager');
-            Route::post('/approved-balance-manager-save', [AdminBm::class, 'approved_balance_manager_save'])->name('approved_balance_manager_save');
-            Route::post('/reject-balance-manager/{id}', [AdminBm::class, 'reject_balance_manager'])->name('reject_balance_manager');
-            Route::any('/view-balance-manager/{id}', [AdminBm::class, 'view_balance_manager'])->name('view_balance_manager');
+            Route::middleware('permission:view-balance-manager')->group(function () {
+                Route::get('/balance-manager/{status}/{agent_number?}', [AdminBm::class, 'balance_manager'])->name('balance_manager');
+                Route::any('/approved-balance-manager/{id}', [AdminBm::class, 'approved_balance_manager'])->middleware('permission:approve-balance-manager')->name('approved_balance_manager');
+                Route::post('/approved-balance-manager-save', [AdminBm::class, 'approved_balance_manager_save'])->middleware('permission:approve-balance-manager')->name('approved_balance_manager_save');
+                Route::post('/reject-balance-manager/{id}', [AdminBm::class, 'reject_balance_manager'])->middleware('permission:reject-balance-manager')->name('reject_balance_manager');
+                Route::any('/view-balance-manager/{id}', [AdminBm::class, 'view_balance_manager'])->name('view_balance_manager');
+            });
             // balance manager finish
 
             //sms inbox
-            Route::get('/sms-inbox', [AdminSmsInbox::class, 'inbox_list'])->name('admin_sms_inbox');
+            Route::get('/sms-inbox', [AdminSmsInbox::class, 'inbox_list'])->middleware('permission:view-sms-inbox')->name('admin_sms_inbox');
             //sms inbox finish
 
-            Route::get('/service-req/details/{id}', [ReportsController::class, 'serviceReqDetails'])->name('service_req_details');
-            Route::get('/service-req/{status}/{agent_number?}', [ReportsController::class, 'serviceReq'])->name('serviceReq');
-            Route::any('/approved_req/{id}', [ReportsController::class, 'approved_req'])->name('approved_req');
-            Route::post('/approved-save', [ReportsController::class, 'approved_save'])->name('approved_save');
-            Route::post('/approved-save', [ReportsController::class, 'approved_save'])->name('approved_save');
-            Route::post('/reject-req/{id}', [ReportsController::class, 'reject_req'])->name('reject_req');
-            Route::post('reject_req', [ReportsController::class, 'RejectRequest'])->name('service.reject_req');
-            Route::get('/resend-req/{id}', [ReportsController::class, 'resend_req'])->name('resend_req');
-            Route::POST('/admin_service_multiple_action', [ReportsController::class, 'service_multiple_action'])->name('admin.service_multiple_action');
+            Route::middleware('permission:view-withdraws')->group(function () {
+                Route::get('/service-req/details/{id}', [ReportsController::class, 'serviceReqDetails'])->middleware('permission:view-service-request-details')->name('service_req_details');
+                Route::get('/service-req/{status}/{agent_number?}', [ReportsController::class, 'serviceReq'])->name('serviceReq');
+                Route::any('/approved_req/{id}', [ReportsController::class, 'approved_req'])->middleware('permission:approve-withdraws')->name('approved_req');
+                Route::post('/approved-save', [ReportsController::class, 'approved_save'])->middleware('permission:approve-withdraws')->name('approved_save');
+                Route::post('/reject-req/{id}', [ReportsController::class, 'reject_req'])->middleware('permission:reject-withdraws')->name('reject_req');
+                Route::post('reject_req', [ReportsController::class, 'RejectRequest'])->middleware('permission:reject-withdraws')->name('service.reject_req');
+                Route::get('/resend-req/{id}', [ReportsController::class, 'resend_req'])->middleware('permission:resend-service-requests')->name('resend_req');
+                Route::POST('/admin_service_multiple_action', [ReportsController::class, 'service_multiple_action'])->middleware('permission:service-multiple-actions')->name('admin.service_multiple_action');
+            });
 
             //Reports Module
-            Route::group(['prefix' => 'report'], function () {
-                Route::get('/sim_report', [DocsReportsController::class, 'sim_report'])->name('sim_report');
+            Route::prefix('report')->middleware('permission:view-reports')->group(function () {
+                Route::get('/sim_report', [DocsReportsController::class, 'sim_report'])->middleware('permission:view-sim-reports')->name('sim_report');
             });
 
             //deposit Module
 
-            Route::group(['prefix' => 'deposit'], function () {
+            Route::prefix('deposit')->middleware('permission:view-deposits')->group(function () {
                 Route::get('/', action: [DepositController::class, 'index'])->name('deposit');
-                Route::post('/reject_deposit_request', [DepositController::class, 'reject_deposit_request'])->name('reject_deposit_request');
-                Route::post('/approve_deposit_request', [DepositController::class, 'approve_deposit_request'])->name('approve_deposit_request');
+                Route::post('/reject_deposit_request', [DepositController::class, 'reject_deposit_request'])->middleware('permission:reject-deposits')->name('reject_deposit_request');
+                Route::post('/approve_deposit_request', [DepositController::class, 'approve_deposit_request'])->middleware('permission:approve-deposits')->name('approve_deposit_request');
             });
 
             //Payment Module
@@ -260,12 +270,77 @@ Route::middleware(['verify'])->group(function () {
                 Route::get('view_ticket/{ticket}', [AdminSupportController::class, 'view_ticket'])->name('admin.view_ticket');
                 Route::post('/submit_solution_ticket', [AdminSupportController::class, 'submitSolutionTicket'])->name('admin.submitSolutionTicket');
                 Route::post('/close_ticket', [AdminSupportController::class, 'closeTicket'])->name('admin.closeTicket');
+                Route::get('/attachment/{id}', [AdminSupportController::class, 'downloadAttachment'])->name('admin.support.download');
+                Route::get('/attachment/{id}/view', [AdminSupportController::class, 'viewAttachment'])->name('admin.support.view');
+            });
+
+            // Notification Routes
+            Route::group(['prefix' => 'notifications'], function () {
+                Route::get('/', [AdminSupportController::class, 'getNotifications'])->name('admin.notifications');
+                Route::post('/mark-read/{id}', [AdminSupportController::class, 'markNotificationAsRead'])->name('admin.notifications.mark-read');
+                Route::post('/mark-all-read', [AdminSupportController::class, 'markAllNotificationsAsRead'])->name('admin.notifications.mark-all-read');
             });
 
             Route::group(['prefix' => 'report'], function () {
                 Route::any('/payment', [AllReportController::class, 'PaymentReport'])->name('report.payment_report');
                 Route::any('/service/{service?}', [AllReportController::class, 'ServiceReport'])->name('report.service_report');
                 Route::any('/balance-summary', [AllReportController::class, 'BalanceSummary'])->name('report.balance_summary');
+            });
+
+            // Roles and Permissions Management
+            Route::group(['prefix' => 'roles'], function () {
+                Route::get('/', [RoleController::class, 'index'])->name('admin.roles.index');
+                Route::get('/create', [RoleController::class, 'create'])->name('admin.roles.create');
+                Route::post('/', [RoleController::class, 'store'])->name('admin.roles.store');
+                Route::get('/{role}', [RoleController::class, 'show'])->name('admin.roles.show');
+                Route::get('/{role}/edit', [RoleController::class, 'edit'])->name('admin.roles.edit');
+                Route::put('/{role}', [RoleController::class, 'update'])->name('admin.roles.update');
+                Route::delete('/{role}', [RoleController::class, 'destroy'])->name('admin.roles.destroy');
+                Route::post('/{role}/assign-users', [RoleController::class, 'assignUsers'])->name('admin.roles.assign-users');
+                Route::delete('/{role}/users/{userId}', [RoleController::class, 'removeUser'])->name('admin.roles.remove-user');
+            });
+
+            Route::group(['prefix' => 'permissions'], function () {
+                Route::get('/', [PermissionController::class, 'index'])->name('admin.permissions.index');
+                Route::get('/create', [PermissionController::class, 'create'])->name('admin.permissions.create');
+                Route::post('/', [PermissionController::class, 'store'])->name('admin.permissions.store');
+                Route::get('/{permission}', [PermissionController::class, 'show'])->name('admin.permissions.show');
+                Route::get('/{permission}/edit', [PermissionController::class, 'edit'])->name('admin.permissions.edit');
+                Route::put('/{permission}', [PermissionController::class, 'update'])->name('admin.permissions.update');
+                Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('admin.permissions.destroy');
+            });
+
+            // Admin Management (CRUD for admins table)
+            Route::group(['prefix' => 'admin-management'], function () {
+                Route::get('/', [AdminManagementController::class, 'index'])->name('admin.admin-management.index');
+                Route::get('/create', [AdminManagementController::class, 'create'])->name('admin.admin-management.create');
+                Route::post('/', [AdminManagementController::class, 'store'])->name('admin.admin-management.store');
+                Route::get('/{adminManagement}', [AdminManagementController::class, 'show'])->name('admin.admin-management.show');
+                Route::get('/{adminManagement}/edit', [AdminManagementController::class, 'edit'])->name('admin.admin-management.edit');
+                Route::put('/{adminManagement}', [AdminManagementController::class, 'update'])->name('admin.admin-management.update');
+                Route::delete('/{adminManagement}', [AdminManagementController::class, 'destroy'])->name('admin.admin-management.destroy');
+                Route::post('/{adminManagement}/toggle-status', [AdminManagementController::class, 'toggleStatus'])->name('admin.admin-management.toggle-status');
+            });
+
+            // Activity Logs Routes
+            Route::middleware('permission:view-activity-logs')->group(function () {
+                Route::get('/activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.activity-logs.index');
+                Route::get('/activity-logs/{id}', [\App\Http\Controllers\Admin\ActivityLogController::class, 'show'])->name('admin.activity-logs.show');
+                Route::delete('/activity-logs/{id}', [\App\Http\Controllers\Admin\ActivityLogController::class, 'destroy'])->name('admin.activity-logs.destroy');
+                Route::post('/activity-logs/bulk-destroy', [\App\Http\Controllers\Admin\ActivityLogController::class, 'bulkDestroy'])->name('admin.activity-logs.bulk-destroy');
+                Route::post('/activity-logs/clear-old', [\App\Http\Controllers\Admin\ActivityLogController::class, 'clearOld'])->name('admin.activity-logs.clear-old');
+                Route::get('/activity-logs-export', [\App\Http\Controllers\Admin\ActivityLogController::class, 'export'])->name('admin.activity-logs.export');
+            });
+
+            // Pricing Plans Routes
+            Route::group(['prefix' => 'pricing'], function () {
+                Route::get('/', [PricingPlanController::class, 'index'])->name('admin.pricing.index');
+                Route::get('/create', [PricingPlanController::class, 'create'])->name('admin.pricing.create');
+                Route::post('/', [PricingPlanController::class, 'store'])->name('admin.pricing.store');
+                Route::get('/{id}/edit', [PricingPlanController::class, 'edit'])->name('admin.pricing.edit');
+                Route::put('/{id}', [PricingPlanController::class, 'update'])->name('admin.pricing.update');
+                Route::delete('/{id}', [PricingPlanController::class, 'destroy'])->name('admin.pricing.destroy');
+                Route::post('/{id}/toggle-status', [PricingPlanController::class, 'toggleStatus'])->name('admin.pricing.toggle-status');
             });
         });
     });

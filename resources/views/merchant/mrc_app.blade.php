@@ -73,6 +73,25 @@
         }
     </style>
 
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'sidebar-dark': '#0f172a',
+                        'sidebar-light': '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Merchant Sidebar Styles -->
+    <link href="{{ asset('css/merchant-tailwind-sidebar.css') }}" rel="stylesheet">
+    
     <link href="{{ asset('static/backend/plugins/simplebar/css/simplebar.css') }}" rel="stylesheet" />
     <link href="{{ asset('static/backend/plugins/metismenu/css/metisMenu.min.css') }}" rel="stylesheet" />
     @stack('css')
@@ -114,8 +133,8 @@
     <div class="wrapper">
         @include('merchant.mrc_sidebar')
         @include('merchant.mrc_head')
-        <div class="page-wrapper">
-            <div class="page-content">
+        <div id="main-content" class="page-wrapper lg:ml-64 transition-all duration-300">
+            <div class="page-content px-3 sm:px-4 md:px-6">
                 @yield('mrc_content')
 
             </div>

@@ -31,6 +31,14 @@ class EventServiceProvider extends ServiceProvider
         McWithdrawCreated::class => [
             WithdrawListener::class,
         ],
+
+        \App\Events\TicketCreated::class => [
+            \App\Listeners\SendTicketNotification::class,
+        ],
+
+        \App\Events\TicketReplied::class => [
+            \App\Listeners\SendTicketReplyNotification::class,
+        ],
     ];
 
     /**

@@ -15,6 +15,9 @@ use App\Models\Merchant;
 use App\Models\Transaction;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketComment;
+use App\Models\MerchantNotification;
+use App\Events\TicketCreated;
+use App\Events\TicketReplied;
 
 class MerchantController extends Controller
 {
@@ -85,8 +88,55 @@ class MerchantController extends Controller
             return view('merchant.transaction-content', compact('data'));
         }
 
+        // Prepare chart data for last 7 days
+        $chartData = $this->getChartData($authData);
+
         $pageTitle = 'Dashboard';
-        return view('merchant.dashboard', compact('data', 'pageTitle'));
+        return view('merchant.dashboard', compact('data', 'pageTitle', 'chartData'));
+    }
+
+    private function getChartData($merchant)
+    {
+        $days = [];
+        $deposits = [];
+        $withdraws = [];
+
+        // Get last 7 days data
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $days[] = now()->subDays($i)->format('M d');
+
+            if ($merchant->merchant_type == 'general') {
+                $depositAmount = \App\Models\PaymentRequest::where('merchant_id', $merchant->id)
+                    ->whereIn('status', [1, 2])
+                    ->whereDate('created_at', $date)
+                    ->sum('merchant_main_amount');
+
+                $withdrawAmount = \App\Models\ServiceRequest::where('merchant_id', $merchant->id)
+                    ->whereIn('status', [2, 3])
+                    ->whereDate('created_at', $date)
+                    ->sum('merchant_main_amount');
+            } else {
+                $depositAmount = \App\Models\PaymentRequest::where('sub_merchant', $merchant->id)
+                    ->whereIn('status', [1, 2])
+                    ->whereDate('created_at', $date)
+                    ->sum('sub_merchant_main_amount');
+
+                $withdrawAmount = \App\Models\ServiceRequest::where('sub_merchant', $merchant->id)
+                    ->whereIn('status', [2, 3])
+                    ->whereDate('created_at', $date)
+                    ->sum('sub_merchant_main_amount');
+            }
+
+            $deposits[] = round($depositAmount, 2);
+            $withdraws[] = round($withdrawAmount, 2);
+        }
+
+        return [
+            'labels' => $days,
+            'deposits' => $deposits,
+            'withdraws' => $withdraws,
+        ];
     }
 
     public function requestService()
@@ -378,6 +428,9 @@ class MerchantController extends Controller
         $this->validate($request, [
             'subject' => 'required',
             'detail' => 'required',
+            'priority' => 'nullable|in:low,medium,high,urgent',
+            'category' => 'nullable|in:technical,billing,account,feature,general,other',
+            'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx,txt,zip',
         ]);
 
         $a = strtoupper(md5(uniqid(rand(), true)));
@@ -387,6 +440,8 @@ class MerchantController extends Controller
             'ticket' => substr($a, 0, 8),
             'customer_id' => auth('merchant')->user()->id,
             'customer_type' => 0,
+            'priority' => $request->priority ?? 'medium',
+            'category' => $request->category ?? 'general',
         ]);
 
         SupportTicketComment::create([
@@ -394,6 +449,28 @@ class MerchantController extends Controller
             'type' => 1,
             'comment' => $request->detail,
         ]);
+
+        // Handle file attachments
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $fileName = time() . '_' . uniqid() . '_' . $originalName;
+                $filePath = $file->storeAs('support_attachments', $fileName, 'public');
+                
+                \App\Models\SupportAttachment::create([
+                    'ticket_id' => $ticket->id,
+                    'original_name' => $originalName,
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_size' => $file->getSize(),
+                    'uploaded_by_type' => 'merchant',
+                    'uploaded_by_id' => auth('merchant')->user()->id,
+                ]);
+            }
+        }
+
+        // Fire event to notify admin
+        event(new TicketCreated($ticket));
 
         Session::flash('message', 'Successfully Created Ticket');
         return redirect()->route('merchant.support_list_view');
@@ -418,11 +495,14 @@ class MerchantController extends Controller
             ->where('ticket', $ticket)
             ->first();
         $ticket_data = SupportTicketComment::where('ticket_id', $ticket)->get();
+        
+        // Get attachments for this ticket
+        $attachments = \App\Models\SupportAttachment::where('ticket_id', $ticket_object->id)->get();
 
         if ($ticket_object == '') {
             return redirect()->route('pagenot.found');
         } else {
-            return view('merchant.support.ticket_reply', compact('ticket_data', 'ticket_object'));
+            return view('merchant.support.ticket_reply', compact('ticket_data', 'ticket_object', 'attachments'));
         }
     }
 
@@ -440,6 +520,7 @@ class MerchantController extends Controller
     {
         $this->validate($request, [
             'comment' => 'required',
+            'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx,txt,zip',
         ]);
 
         SupportTicketComment::create([
@@ -448,10 +529,130 @@ class MerchantController extends Controller
             'comment' => $request->comment,
         ]);
 
+        $ticketObject = SupportTicket::where('ticket', $ticket)->first();
+
+        // Handle file attachments for reply
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $fileName = time() . '_' . uniqid() . '_' . $originalName;
+                $filePath = $file->storeAs('support_attachments', $fileName, 'public');
+                
+                \App\Models\SupportAttachment::create([
+                    'ticket_id' => $ticketObject->id,
+                    'original_name' => $originalName,
+                    'file_path' => $filePath,
+                    'file_type' => $file->getClientMimeType(),
+                    'file_size' => $file->getSize(),
+                    'uploaded_by_type' => 'merchant',
+                    'uploaded_by_id' => auth('merchant')->user()->id,
+                ]);
+            }
+        }
+
         SupportTicket::where('ticket', $ticket)->update([
             'status' => 3,
+            'last_reply_at' => now()
         ]);
+
+        // Fire event to notify admin about reply
+        event(new TicketReplied($ticketObject));
 
         return redirect()->back()->with('message', 'Message Send Successful');
     }
+
+    public function downloadAttachment($id)
+    {
+        $attachment = \App\Models\SupportAttachment::findOrFail($id);
+        
+        // Check if user has access to this attachment
+        $ticket = \App\Models\SupportTicket::findOrFail($attachment->ticket_id);
+        
+        if ($ticket->customer_id != auth('merchant')->user()->id || $ticket->customer_type != 0) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        $filePath = storage_path('app/public/' . $attachment->file_path);
+        
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found');
+        }
+        
+        // For images and PDFs, display inline in browser
+        $mimeType = $attachment->file_type;
+        if (str_contains($mimeType, 'image') || str_contains($mimeType, 'pdf')) {
+            return response()->file($filePath, [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . $attachment->original_name . '"'
+            ]);
+        }
+        
+        // For other files, force download
+        return response()->download($filePath, $attachment->original_name);
+    }
+
+    public function viewAttachment($id)
+    {
+        $attachment = \App\Models\SupportAttachment::findOrFail($id);
+        
+        // Check if user has access to this attachment
+        $ticket = \App\Models\SupportTicket::findOrFail($attachment->ticket_id);
+        
+        if ($ticket->customer_id != auth('merchant')->user()->id || $ticket->customer_type != 0) {
+            abort(403, 'Unauthorized access');
+        }
+        
+        $filePath = storage_path('app/public/' . $attachment->file_path);
+        
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found');
+        }
+        
+        return response()->file($filePath, [
+            'Content-Type' => $attachment->file_type,
+            'Content-Disposition' => 'inline; filename="' . $attachment->original_name . '"'
+        ]);
+    }
+
+    public function getNotifications()
+    {
+        $notifications = MerchantNotification::where('merchant_id', auth('merchant')->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        $unreadCount = MerchantNotification::where('merchant_id', auth('merchant')->user()->id)
+            ->where('is_read', 0)
+            ->count();
+
+        return response()->json([
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount
+        ]);
+    }
+
+    public function markNotificationAsRead($id)
+    {
+        $notification = MerchantNotification::where('id', $id)
+            ->where('merchant_id', auth('merchant')->user()->id)
+            ->first();
+
+        if ($notification) {
+            $notification->is_read = 1;
+            $notification->save();
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false]);
+    }
+
+    public function markAllNotificationsAsRead()
+    {
+        MerchantNotification::where('merchant_id', auth('merchant')->user()->id)
+            ->where('is_read', 0)
+            ->update(['is_read' => 1]);
+
+        return response()->json(['success' => true]);
+    }
 }
+

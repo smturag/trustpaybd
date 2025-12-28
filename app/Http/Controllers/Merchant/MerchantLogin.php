@@ -259,4 +259,40 @@ class MerchantLogin extends Controller
         return redirect()->route('merchantList')->with('message', 'You have returned to admin panel');
     }
 
+    public function merchant_sign_up(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'company' => 'required|string|max:255',
+            'website' => 'nullable|string|max:255',
+            'email' => 'required|email|unique:merchants,email|max:255',
+            'country' => 'required|string|max:2',
+            'phone' => 'required|string|max:20|unique:merchants,mobile',
+            'password' => 'required|string|min:8|confirmed',
+            'terms' => 'required|accepted',
+        ]);
+
+        $merchant = new Merchant();
+        $merchant->fullname = $request->input('name');
+        $merchant->username = $request->input('company'); // Using company as username
+        $merchant->mobile = $request->input('phone');
+        $merchant->email = $request->input('email');
+        $merchant->password = Hash::make($request->input('password'));
+        $merchant->balance = 0;
+        $merchant->status = 'pending'; // Set status to pending until admin approves
+        $merchant->note = 'Country: ' . $request->input('country') . ($request->input('website') ? ', Website: ' . $request->input('website') : '');
+        $merchant->save();
+
+        // Generate API key for the merchant
+        $merchant->api_key = Str::random(32);
+        $merchant->save();
+
+        // Optional: Send verification email
+        // $verificationToken = Str::random(40);
+        // $verificationLink = route('merchant.verify', ['token' => $verificationToken]);
+        // Mail::to($merchant->email)->send(new VerificationEmail($verificationLink));
+
+        return redirect()->route('merchantlogin')->with('success', 'Your merchant account has been created successfully. Please wait for admin approval to login.');
+    }
+
 }

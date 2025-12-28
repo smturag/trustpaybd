@@ -26,6 +26,8 @@ Route::group(['prefix' => 'merchant'], function () {
 
     })->name('merchant.sign_up');
 
+    Route::post('/sign_up', [MerchantLogin::class, 'merchant_sign_up'])->name('merchant.sign_up.submit');
+
     Route::any('/merchant_login_pin', [MerchantLogin::class, 'loginPin'])->name('merchant_login_pin');
     Route::any('/merchantPinVerify', [MerchantLogin::class, 'merchantPinVerify'])->name('merchantPinVerify');
 
@@ -83,6 +85,13 @@ Route::group(['prefix' => 'merchant'], function () {
         Route::any('/support/reply/{ticket}', [MerchantController::class, 'ticketReply'])->name('merchant.ticket_customer_reply');
         Route::any('/comment/close/{ticket}', [MerchantController::class, 'ticketClose'])->name('merchant.ticketClose');
         Route::any('/support/store/{ticket}', [MerchantController::class, 'ticketReplyStore'])->name('merchant.ticketReplyStore');
+        Route::get('/support/attachment/{id}', [MerchantController::class, 'downloadAttachment'])->name('merchant.support.download');
+        Route::get('/support/attachment/{id}/view', [MerchantController::class, 'viewAttachment'])->name('merchant.support.view');
+        
+        // Merchant notifications
+        Route::get('/notifications', [MerchantController::class, 'getNotifications'])->name('merchant.notifications');
+        Route::post('/notifications/{id}/read', [MerchantController::class, 'markNotificationAsRead'])->name('merchant.notifications.read');
+        Route::post('/notifications/read-all', [MerchantController::class, 'markAllNotificationsAsRead'])->name('merchant.notifications.readAll');
 
         Route::get('/modem_list', [ModemController::class, 'modemList'])->name('merchant_modemList');
         Route::delete('/modem_delete/{id}', [ModemController::class, 'delete'])->name('merchant.modem_delete');

@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
-    //
+	//
 
 	public function dashboard() {
-        return view('admin.admin-dashboard');
+        return view('admin.admin-dashboard-new');
     }
 
     public function reset_balance(){

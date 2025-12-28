@@ -4,7 +4,6 @@
 @section('mrc_content')
     @push('css')
         <?php
-
         use Carbon\Carbon;
 
         $today = Carbon::today();
@@ -37,15 +36,14 @@
             : $merchant->available_balance;
 
         if ($merchant->merchant_type == 'general') {
-
             $total_payment_request = App\Models\PaymentRequest::where('merchant_id', $merchant->id)
-            ->whereIn('status', [1, 2])
-            ->sum('merchant_main_amount');
+                ->whereIn('status', [1, 2])
+                ->sum('merchant_main_amount');
 
             $total_payment_request_today = App\Models\PaymentRequest::whereDate('created_at', now())
-            ->where('merchant_id', $merchant->id)
-            ->whereIn('status', [1, 2])
-            ->sum('merchant_main_amount');
+                ->where('merchant_id', $merchant->id)
+                ->whereIn('status', [1, 2])
+                ->sum('merchant_main_amount');
 
             $total_payment_request_transection = App\Models\PaymentRequest::where('merchant_id', $merchant->id)->count();
 
@@ -61,17 +59,14 @@
                 ->whereIn('status', [1, 2])
                 ->count();
         } else {
-
             $total_payment_request = App\Models\PaymentRequest::where('sub_merchant', $merchant->id)
-            ->whereIn('status', [1, 2])
-            ->sum('sub_merchant_main_amount');
-
+                ->whereIn('status', [1, 2])
+                ->sum('sub_merchant_main_amount');
 
             $total_payment_request_today = App\Models\PaymentRequest::whereDate('created_at', now())
-            ->where('sub_merchant', $merchant->id)
-            ->whereIn('status', [1, 2])
-            ->sum('sub_merchant_main_amount');
-
+                ->where('sub_merchant', $merchant->id)
+                ->whereIn('status', [1, 2])
+                ->sum('sub_merchant_main_amount');
 
             $total_payment_request_transection = App\Models\PaymentRequest::where('sub_merchant', $merchant->id)->count();
             $total_mfs_request = App\Models\ServiceRequest::where('sub_merchant', $merchant->id)
@@ -85,886 +80,769 @@
                 ->whereIn('status', [1, 2])
                 ->count();
         }
-
         ?>
     @endpush
 
-    <div class="card radius-10">
-        <div class="card-body">
-            <div class="d-flex align-items-center mb-4">
-                <div>
-                    <h5 class="mb-0">Welcome, {{ $merchant->fullname }}</h5>
-                    <p class="text-secondary mb-0 mt-1">Here's your payment gateway overview</p>
+    <!-- Modern Tailwind Dashboard -->
+    <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <!-- Welcome Header -->
+        <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-xl lg:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8 text-white">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div class="mb-4 md:mb-0">
+                    <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2">Welcome back, {{ $merchant->fullname }}! 👋</h1>
+                    <p class="text-indigo-100 text-sm sm:text-base lg:text-lg">Here's your payment gateway overview for today</p>
                 </div>
-                <div class="ms-auto">
-                    <span class="badge bg-light-primary text-primary p-2">
-                        <i class="bx bx-calendar me-1"></i> {{ now()->format('d M, Y') }}
-                    </span>
+                <div class="flex items-center space-x-2 sm:space-x-3 bg-white/20 backdrop-blur-sm rounded-lg lg:rounded-xl px-3 sm:px-4 lg:px-6 py-2 sm:py-3 border border-white/30">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="font-semibold text-sm sm:text-base lg:text-lg">{{ now()->format('d M, Y') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <!-- Available Balance Card -->
+            <div class="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl lg:rounded-2xl shadow-xl p-4 sm:p-6 text-white transform hover:scale-105 transition-all duration-300 hover:shadow-2xl active:scale-95">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <div class="bg-white/20 backdrop-blur-sm p-2 sm:p-3 rounded-lg lg:rounded-xl">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-full text-xs font-semibold">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Active
+                    </div>
+                </div>
+                <p class="text-emerald-100 text-xs sm:text-sm font-medium mb-1 sm:mb-2">Available Balance</p>
+                <h3 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3">৳{{ number_format($dashboardBalance, 2) }}</h3>
+                <div class="flex items-center text-xs sm:text-sm">
+                    <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <span class="font-medium">Ready to use</span>
+                </div>
+                <div class="mt-3 sm:mt-4 bg-white/20 rounded-full h-1.5 sm:h-2 overflow-hidden">
+                    <div class="bg-white h-full rounded-full transition-all duration-1000" style="width: 85%"></div>
                 </div>
             </div>
 
-            <!-- Main Dashboard Cards -->
-            <div class="row g-3">
-                <div class="col-md-6 col-lg-4 col-xl">
-                    <div class="card h-100 radius-10 border-start border-3 border-success">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="widgets-icons-2 bg-gradient-success text-white me-3">
-                                    <i class='bx bx-wallet'></i>
-                                </div>
-                                <div>
-                                    <p class="mb-0 text-secondary fw-bold">Available Balance</p>
-                                    <h4 class="my-1 text-success">
-                                        ৳{{ money($dashboardBalance) }}
-                                    </h4>
-                                    <p class="mb-0 font-13 text-success">
-                                        <i class='bx bxs-up-arrow align-middle'></i> Available to use
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="progress mt-3" style="height: 6px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: 85%"></div>
-                            </div>
-                        </div>
+            <!-- Deposit Card -->
+            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl lg:rounded-2xl shadow-xl p-4 sm:p-6 text-white transform hover:scale-105 transition-all duration-300 hover:shadow-2xl active:scale-95">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <div class="bg-white/20 backdrop-blur-sm p-2 sm:p-3 rounded-lg lg:rounded-xl">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <a href="{{ route('merchant.payment-request') }}" class="bg-white/20 backdrop-blur-sm p-2 rounded-lg hover:bg-white/30 transition-colors active:scale-95">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                </div>
+                <p class="text-blue-100 text-xs sm:text-sm font-medium mb-1 sm:mb-2">Total Deposit</p>
+                <h3 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3">৳{{ number_format($total_payment_request, 2) }}</h3>
+                <div class="flex items-center justify-between text-xs sm:text-sm">
+                    <div class="flex items-center">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <span class="truncate">Today: ৳{{ number_format($total_payment_request_today, 2) }}</span>
+                    </div>
+                    <span class="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full text-[10px] sm:text-xs whitespace-nowrap ml-2">{{ $total_payment_request_transection }} TXN</span>
+                </div>
+                <div class="mt-3 sm:mt-4 bg-white/20 rounded-full h-1.5 sm:h-2 overflow-hidden">
+                    <div class="bg-white h-full rounded-full transition-all duration-1000" style="width: 75%"></div>
+                </div>
+            </div>
+
+            <!-- Withdraw Card -->
+            <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-xl lg:rounded-2xl shadow-xl p-4 sm:p-6 text-white transform hover:scale-105 transition-all duration-300 hover:shadow-2xl active:scale-95">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <div class="bg-white/20 backdrop-blur-sm p-2 sm:p-3 rounded-lg lg:rounded-xl">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <a href="{{ route('merchant.service-request') }}" class="bg-white/20 backdrop-blur-sm p-2 rounded-lg hover:bg-white/30 transition-colors active:scale-95">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                </div>
+                <p class="text-orange-100 text-xs sm:text-sm font-medium mb-1 sm:mb-2">Total Withdraw</p>
+                <h3 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3">৳{{ number_format($total_mfs_request, 2) }}</h3>
+                <div class="flex items-center justify-between text-xs sm:text-sm">
+                    <div class="flex items-center">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <span class="truncate">Today: ৳{{ number_format($today_total_mfs_request, 2) }}</span>
+                    </div>
+                    <span class="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full text-[10px] sm:text-xs whitespace-nowrap ml-2">{{ $total_mfs_transection }} TXN</span>
+                </div>
+                <div class="mt-3 sm:mt-4 bg-white/20 rounded-full h-1.5 sm:h-2 overflow-hidden">
+                    <div class="bg-white h-full rounded-full transition-all duration-1000" style="width: 65%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <!-- Today Payment Request -->
+            <div class="dashboard-card rounded-xl shadow-lg p-4 sm:p-6 dashboard-border hover:shadow-xl transition-all duration-300 active:scale-95">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-blue-100 dashboard-icon-blue p-3 rounded-lg">
+                        <svg class="w-6 h-6 dashboard-icon-blue-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
                     </div>
                 </div>
+                <p class="text-sm dashboard-text-secondary font-medium mb-1">Today Payment</p>
+                <h4 class="text-2xl font-bold dashboard-text-primary mb-2">৳{{ number_format($total_payment_request_today, 2) }}</h4>
+                <div class="flex items-center text-xs dashboard-icon-blue-text">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {{ now()->format('d M Y') }}
+                </div>
+            </div>
 
-                <div class="col-md-6 col-lg-4 col-xl">
-                    <div class="card h-100 radius-10 border-start border-3 border-primary">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="widgets-icons-2 bg-gradient-primary text-white me-3">
-                                    <i class='bx bxs-credit-card'></i>
-                                </div>
-                                <div>
-                                    <p class="mb-0 text-secondary fw-bold">Deposit</p>
-                                    <h4 class="my-1 text-primary">৳{{ money($total_payment_request) }}</h4>
-                                    <p class="mb-0 font-13 text-primary">
-                                        <i class='bx bx-trending-up align-middle'></i> Today: ৳{{ money($total_payment_request_today) }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="progress mt-3" style="height: 6px;">
-                                <div class="progress-bar bg-primary" role="progressbar" style="width: 75%"></div>
-                            </div>
-                            <div class="d-flex align-items-center mt-3">
-                                <div class="flex-grow-1">
-                                    <a href="{{ route('merchant.payment-request') }}" class="text-primary fw-bold font-13">
-                                        <i class='bx bx-link-external'></i> View All ({{ $total_payment_request_transection }})
-                                    </a>
-                                </div>
-                                <div>
-                                    <span class="badge bg-light-primary text-primary">
-                                        <i class='bx bx-check-circle'></i> Success
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Pending Payment -->
+            <div class="dashboard-card rounded-xl shadow-lg p-6 dashboard-border hover:shadow-xl transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-yellow-100 dashboard-icon-yellow p-3 rounded-lg">
+                        <svg class="w-6 h-6 dashboard-icon-yellow-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                     </div>
                 </div>
+                <p class="text-sm dashboard-text-secondary font-medium mb-1">Pending Payment</p>
+                <h4 class="text-2xl font-bold dashboard-text-primary mb-2">৳{{ number_format(getMerchantBalance($merchant->id)['totalPendingPayment'], 2) }}</h4>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium dashboard-badge-yellow">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Pending
+                </span>
+            </div>
 
-                <div class="col-md-6 col-lg-4 col-xl">
-                    <div class="card h-100 radius-10 border-start border-3 border-warning">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="widgets-icons-2 bg-gradient-warning text-white me-3">
-                                    <i class='bx bx-mobile-alt'></i>
-                                </div>
-                                <div>
-                                    <p class="mb-0 text-secondary fw-bold">Withdraw</p>
-                                    <h4 class="my-1 text-warning">৳{{ money($total_mfs_request) }}</h4>
-                                    <p class="mb-0 font-13 text-warning">
-                                        <i class='bx bx-trending-up align-middle'></i> Today: ৳{{ money($today_total_mfs_request) }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="progress mt-3" style="height: 6px;">
-                                <div class="progress-bar bg-warning" role="progressbar" style="width: 65%"></div>
-                            </div>
-                            <div class="d-flex align-items-center mt-3">
-                                <div class="flex-grow-1">
-                                    <a href="{{ route('merchant.service-request') }}" class="text-warning fw-bold font-13">
-                                        <i class='bx bx-link-external'></i> View All ({{ $total_mfs_transection }})
-                                    </a>
-                                </div>
-                                <div>
-                                    <span class="badge bg-light-warning text-warning">
-                                        <i class='bx bx-mobile'></i> Mobile Banking
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Receive Balance -->
+            <div class="dashboard-card rounded-xl shadow-lg p-6 dashboard-border hover:shadow-xl transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-green-100 dashboard-icon-green p-3 rounded-lg">
+                        <svg class="w-6 h-6 dashboard-icon-green-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-sm dashboard-text-secondary font-medium mb-1">Receive Balance</p>
+                <h4 class="text-2xl font-bold dashboard-text-primary mb-2">৳{{ number_format(getMerchantBalance($merchant->id)['adminCreditAmount'], 2) }}</h4>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium dashboard-badge-green">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Credited
+                </span>
+            </div>
+
+            <!-- Return Balance -->
+            <div class="dashboard-card rounded-xl shadow-lg p-6 dashboard-border hover:shadow-xl transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="bg-red-100 dashboard-icon-red p-3 rounded-lg">
+                        <svg class="w-6 h-6 dashboard-icon-red-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-sm dashboard-text-secondary font-medium mb-1">Return Balance</p>
+                <h4 class="text-2xl font-bold dashboard-text-primary mb-2">৳{{ number_format(getMerchantBalance($merchant->id)['adminDebitAmount'], 2) }}</h4>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium dashboard-badge-red">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Debited
+                </span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <a href="{{ route('merchant.payment-request.create') }}" class="group dashboard-quick-action-blue border-2 border-blue-200 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <div class="flex items-center">
+                    <div class="bg-gradient-to-br from-blue-600 to-indigo-600 p-3 sm:p-4 rounded-xl text-white group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <div class="ml-3 sm:ml-4 flex-1">
+                        <h3 class="text-base sm:text-lg font-bold dashboard-text-primary">Create Deposit</h3>
+                        <p class="text-xs sm:text-sm dashboard-text-secondary">Start new payment request</p>
+                    </div>
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 ml-2 dashboard-icon-blue-text group-hover:translate-x-2 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </div>
+            </a>
+
+            <a href="{{ route('merchant.withdraw') }}" class="group dashboard-quick-action-orange border-2 border-orange-200 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <div class="flex items-center">
+                    <div class="bg-gradient-to-br from-orange-600 to-red-600 p-3 sm:p-4 rounded-xl text-white group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <div class="ml-3 sm:ml-4 flex-1">
+                        <h3 class="text-base sm:text-lg font-bold dashboard-text-primary">Request Withdraw</h3>
+                        <p class="text-xs sm:text-sm dashboard-text-secondary">Withdraw your funds</p>
+                    </div>
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 ml-2 dashboard-icon-orange-text group-hover:translate-x-2 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </div>
+            </a>
+
+            <a href="{{ route('merchant.developer-index') }}" class="group dashboard-quick-action-purple border-2 border-purple-200 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95">
+                <div class="flex items-center">
+                    <div class="bg-gradient-to-br from-purple-600 to-pink-600 p-3 sm:p-4 rounded-xl text-white group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                    </div>
+                    <div class="ml-3 sm:ml-4 flex-1">
+                        <h3 class="text-base sm:text-lg font-bold dashboard-text-primary">API Settings</h3>
+                        <p class="text-xs sm:text-sm dashboard-text-secondary">Manage API keys</p>
+                    </div>
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6 ml-2 dashboard-icon-purple-text group-hover:translate-x-2 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </div>
+            </a>
+        </div>
+
+        <!-- Transaction Chart Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <!-- Line Chart - Transaction Trends -->
+            <div class="dashboard-card rounded-xl lg:rounded-2xl shadow-xl p-4 sm:p-6 dashboard-border">
+                <div class="flex items-center justify-between mb-4 sm:mb-6">
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold dashboard-text-primary">Transaction Trends</h3>
+                        <p class="text-xs sm:text-sm dashboard-text-secondary">Last 7 days overview</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-500 to-purple-600 p-2 sm:p-3 rounded-lg text-white">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="transactionLineChart"></canvas>
+                </div>
+                <div class="flex items-center justify-center gap-4 sm:gap-6 mt-4 sm:mt-6 flex-wrap">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-blue-500 mr-2"></div>
+                        <span class="text-xs sm:text-sm dashboard-text-secondary">Deposits</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500 mr-2"></div>
+                        <span class="text-xs sm:text-sm dashboard-text-secondary">Withdraws</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Additional Transaction Stats -->
-            <div class="row g-3 mt-3">
-                <!-- Today Payment Request Card -->
-                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="card radius-10">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Today Payment Request</p>
-                                    <h5 class="my-1">৳{{ money($total_payment_request_today) }}</h5>
-                                    <span class="badge bg-light-primary text-primary font-12"><i class='bx bx-time align-middle'></i> {{ now()->format('d M Y') }}</span>
-                                </div>
-                                <div class="widgets-icons bg-light-primary text-primary ms-auto">
-                                    <i class='bx bx-calendar-check'></i>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Bar Chart - Comparison -->
+            <div class="dashboard-card rounded-xl lg:rounded-2xl shadow-xl p-4 sm:p-6 dashboard-border">
+                <div class="flex items-center justify-between mb-4 sm:mb-6">
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold dashboard-text-primary">Deposit vs Withdraw</h3>
+                        <p class="text-xs sm:text-sm dashboard-text-secondary">Daily comparison</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 p-2 sm:p-3 rounded-lg text-white">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
                     </div>
                 </div>
-
-                <!-- Total Payment Request Card -->
-                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="card radius-10">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Total Payment Request</p>
-                                    <h5 class="my-1">৳{{ money($total_payment_request) }}</h5>
-                                    <span class="badge bg-light-primary text-primary font-12"><i class='bx bx-check-double align-middle'></i> Success + Approved ({{ $total_payment_request_transection }})</span>
-                                </div>
-                                <div class="widgets-icons bg-light-primary text-primary ms-auto">
-                                    <i class='bx bxs-credit-card'></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="transactionBarChart"></canvas>
                 </div>
-
-                <!-- Pending Payment Card -->
-                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="card radius-10">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Pending Payment</p>
-                                    <h5 class="my-1">৳{{ money(getMerchantBalance($merchant->id)['totalPendingPayment']) }}</h5>
-                                    <span class="badge bg-light-warning text-warning font-12"><i class='bx bx-loader-circle align-middle'></i> Pending</span>
-                                </div>
-                                <div class="widgets-icons bg-light-warning text-warning ms-auto">
-                                    <i class='bx bx-time-five'></i>
-                                </div>
-                            </div>
-                        </div>
+                <div class="grid grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4">
+                        <p class="text-xs dashboard-text-secondary mb-1">Total Deposits</p>
+                        <p class="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">৳{{ number_format(array_sum($chartData['deposits']), 2) }}</p>
                     </div>
-                </div>
-
-                <!-- Receive Balance Card -->
-                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="card radius-10">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Receive Balance</p>
-                                    <h5 class="my-1">৳{{ money(getMerchantBalance($merchant->id)['adminCreditAmount']) }}</h5>
-                                    <span class="badge bg-light-success text-success font-12"><i class='bx bx-check-double align-middle'></i> Success + Approved</span>
-                                </div>
-                                <div class="widgets-icons bg-light-success text-success ms-auto">
-                                    <i class='bx bx-download'></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Return Balance Card -->
-                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="card radius-10">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Return Balance</p>
-                                    <h5 class="my-1">৳{{ money(getMerchantBalance($merchant->id)['adminDebitAmount']) }}</h5>
-                                    <span class="badge bg-light-danger text-danger font-12"><i class='bx bx-check-double align-middle'></i> Success + Approved</span>
-                                </div>
-                                <div class="widgets-icons bg-light-danger text-danger ms-auto">
-                                    <i class='bx bx-upload'></i>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 sm:p-4">
+                        <p class="text-xs dashboard-text-secondary mb-1">Total Withdraws</p>
+                        <p class="text-lg sm:text-xl font-bold text-orange-600 dark:text-orange-400">৳{{ number_format(array_sum($chartData['withdraws']), 2) }}</p>
                     </div>
                 </div>
             </div>
-
-
-                @php
-    $modems = activeMfsApi(); // Example source
-    $totalOnline = count($modems);
-@endphp
-
-<!--
-<div class="container mt-4">
-    <h5 class="mb-4" style="font-weight: bold; color: green;">
-        <i class="fas fa-wifi"></i> Total Online Modems:
-        <span class="badge bg-success" style="font-size: 18px;">{{ $totalOnline }}</span>
-    </h5>
-
-    <div class="row">
-        @foreach($modems as $modem)
-            @php
-                $operator = strtolower($modem['type']);
-                switch ($operator) {
-                    case 'bkash':
-                        $imagePath = 'payments/bkash.png';
-                        break;
-                    case 'nagad':
-                        $imagePath = 'payments/nagad.png';
-                        break;
-                    case 'rocket':
-                        $imagePath = 'payments/rocket.png';
-                        break;
-                    case 'upay':
-                        $imagePath = 'payments/upay.png';
-                        break;
-                    default:
-                        $imagePath = 'payments/default.png';
-                }
-            @endphp
-
-            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                <div class="p-3 rounded text-white" style="background-color: #00c851;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div style="font-size: 1.2rem; font-weight: bold;">
-                            {{ $modem['phone'] }}
-                        </div>
-                        <img src="{{ asset($imagePath) }}" alt="{{ $operator }}"
-                            style="width: 40px; border-radius: 6px;">
-                    </div>
-                    <div style="font-size: 1rem; margin-top: 6px;">
-                        {{ number_format($modem['balance'], 2) }} ৳
-                    </div>
-                    <div class="d-flex align-items-center mt-2">
-                        <i class="fas fa-battery-three-quarters fa-lg me-2"></i>
-                    </div>
-                </div>
-            </div>
-        @endforeach
-    </div>
-</div>
- -->
-
-            <!-- Recent Transactions Section
-
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card radius-10">
-                        <div class="card-header bg-transparent">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <h6 class="mb-0 fw-bold"><i class='bx bx-history me-1'></i> Recent Transactions</h6>
-                                    <p class="text-secondary mb-0 mt-1 font-13">Your latest payment activities</p>
-                                </div>
-                                <div class="ms-auto">
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-outline-primary active">All</button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary">Payments</button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary">MFS</button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary">Withdrawals</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="transaction-timeline p-3">
-
-                            <div class="table-responsive">
-                                <table class="table align-middle mb-0 table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>TRX ID</th>
-                                            <th>Type</th>
-                                            <th>Amount</th>
-                                            <th>Status</th>
-                                            <th>Date</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @php
-                                            // Get recent transactions (combining payment requests and MFS)
-                                            $recentPayments = App\Models\PaymentRequest::where('merchant_id', $merchant->id)
-                                                ->orderBy('created_at', 'desc')
-                                                ->take(3)
-                                                ->get();
-
-                                            $recentMfs = App\Models\ServiceRequest::where('merchant_id', $merchant->id)
-                                                ->orderBy('created_at', 'desc')
-                                                ->take(3)
-                                                ->get();
-
-                                            $recentWithdrawals = App\Models\WalletTransaction::where('merchant_id', $merchant->id)
-                                                ->where('type', 'withdraw')
-                                                ->orderBy('created_at', 'desc')
-                                                ->take(2)
-                                                ->get();
-                                        @endphp
-
-
-                                        @foreach($recentPayments as $payment)
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="transaction-icon bg-light-primary text-primary">
-                                                            <i class='bx bxs-credit-card'></i>
-                                                        </div>
-                                                        <div class="ms-2">
-                                                            <p class="mb-0 font-14">{{ $payment->trxid }}</p>
-                                                            <p class="mb-0 text-secondary font-13">Payment</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-light-primary text-primary">Gateway</span>
-                                                </td>
-                                                <td>
-                                                    <span class="fw-bold">৳{{ money($payment->amount) }}</span>
-                                                </td>
-                                                <td>
-                                                    @if($payment->status == 'success')
-                                                        <span class="badge bg-success">Success</span>
-                                                    @elseif($payment->status == 'pending')
-                                                        <span class="badge bg-warning">Pending</span>
-                                                    @elseif($payment->status == 'failed')
-                                                        <span class="badge bg-danger">Failed</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">{{ $payment->status }}</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <div>
-                                                        {{ $payment->created_at->format('d M, Y') }}
-                                                        <p class="mb-0 text-secondary font-13">{{ $payment->created_at->format('h:i A') }}</p>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="#" class="btn btn-sm btn-outline-primary">
-                                                        <i class='bx bx-show'></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-
-                                        @foreach($recentMfs as $mfs)
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="transaction-icon bg-light-warning text-warning">
-                                                            <i class='bx bx-mobile-alt'></i>
-                                                        </div>
-                                                        <div class="ms-2">
-                                                            <p class="mb-0 font-14">{{ $mfs->trxid }}</p>
-                                                            <p class="mb-0 text-secondary font-13">MFS</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-light-warning text-warning">Mobile Banking</span>
-                                                </td>
-                                                <td>
-                                                    <span class="fw-bold">৳{{ money($mfs->amount) }}</span>
-                                                </td>
-                                                <td>
-                                                    @if($mfs->status == 'success')
-                                                        <span class="badge bg-success">Success</span>
-                                                    @elseif($mfs->status == 'pending')
-                                                        <span class="badge bg-warning">Pending</span>
-                                                    @elseif($mfs->status == 'failed')
-                                                        <span class="badge bg-danger">Failed</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">{{ $mfs->status }}</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <div>
-                                                        {{ $mfs->created_at->format('d M, Y') }}
-                                                        <p class="mb-0 text-secondary font-13">{{ $mfs->created_at->format('h:i A') }}</p>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="#" class="btn btn-sm btn-outline-primary">
-                                                        <i class='bx bx-show'></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-
-
-                                        @foreach($recentWithdrawals as $withdrawal)
-                                            <tr>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="transaction-icon bg-light-danger text-danger">
-                                                            <i class='bx bx-money-withdraw'></i>
-                                                        </div>
-                                                        <div class="ms-2">
-                                                            <p class="mb-0 font-14">{{ $withdrawal->trx }}</p>
-                                                            <p class="mb-0 text-secondary font-13">Withdrawal</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-light-danger text-danger">Withdraw</span>
-                                                </td>
-                                                <td>
-                                                    <span class="fw-bold">৳{{ money($withdrawal->debit) }}</span>
-                                                </td>
-                                                <td>
-                                                    @if($withdrawal->status == 'success')
-                                                        <span class="badge bg-success">Success</span>
-                                                    @elseif($withdrawal->status == 'pending')
-                                                        <span class="badge bg-warning">Pending</span>
-                                                    @elseif($withdrawal->status == 'failed')
-                                                        <span class="badge bg-danger">Failed</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">{{ $withdrawal->status }}</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <div>
-                                                        {{ $withdrawal->created_at->format('d M, Y') }}
-                                                        <p class="mb-0 text-secondary font-13">{{ $withdrawal->created_at->format('h:i A') }}</p>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="#" class="btn btn-sm btn-outline-primary">
-                                                        <i class='bx bx-show'></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="text-center mt-4 mb-2">
-                                <a href="{{ route('merchant.payment-request') }}" class="btn btn-primary">
-                                    <i class='bx bx-list-ul me-1'></i> View All Transactions
-                                </a>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            -->
         </div>
     </div>
-    <!--end row-->
 
 @endsection
 
 @push('css')
 <style>
-    /* Enhanced card styling */
-    .card {
-        border: none;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-        border-radius: 15px;
-        overflow: hidden;
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
     }
 
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    /* Dark mode scrollbar */
+    html.dark-theme ::-webkit-scrollbar-track {
+        background: #1e293b;
+    }
+    html.dark-theme ::-webkit-scrollbar-thumb {
+        background: #475569;
+    }
+    html.dark-theme ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
     }
 
-    .card-body {
-        padding: 1.5rem;
+    /* Dashboard Card Styles - Light Mode */
+    .dashboard-card {
+        background: white;
+    }
+    
+    .dashboard-border {
+        border: 1px solid #e2e8f0;
+    }
+    
+    .dashboard-text-primary {
+        color: #0f172a;
+    }
+    
+    .dashboard-text-secondary {
+        color: #64748b;
+    }
+    
+    /* Icon Backgrounds - Light Mode */
+    .dashboard-icon-blue {
+        background: #dbeafe;
+    }
+    
+    .dashboard-icon-blue-text {
+        color: #2563eb;
+    }
+    
+    .dashboard-icon-yellow {
+        background: #fef3c7;
+    }
+    
+    .dashboard-icon-yellow-text {
+        color: #d97706;
+    }
+    
+    .dashboard-icon-green {
+        background: #d1fae5;
+    }
+    
+    .dashboard-icon-green-text {
+        color: #059669;
+    }
+    
+    .dashboard-icon-red {
+        background: #fee2e2;
+    }
+    
+    .dashboard-icon-red-text {
+        color: #dc2626;
+    }
+    
+    .dashboard-icon-orange-text {
+        color: #ea580c;
+    }
+    
+    .dashboard-icon-purple-text {
+        color: #9333ea;
+    }
+    
+    /* Badges - Light Mode */
+    .dashboard-badge-yellow {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .dashboard-badge-green {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .dashboard-badge-red {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    /* Quick Actions - Light Mode */
+    .dashboard-quick-action-blue {
+        background: linear-gradient(to bottom right, #eff6ff, #dbeafe);
+    }
+    
+    .dashboard-quick-action-orange {
+        background: linear-gradient(to bottom right, #fff7ed, #fed7aa);
+    }
+    
+    .dashboard-quick-action-purple {
+        background: linear-gradient(to bottom right, #faf5ff, #f3e8ff);
+    }
+    
+    /* Dark Mode Styles */
+    html.dark-theme .dashboard-card {
+        background: #1e293b;
+    }
+    
+    html.dark-theme .dashboard-border {
+        border-color: #334155;
+    }
+    
+    html.dark-theme .dashboard-text-primary {
+        color: #f1f5f9;
+    }
+    
+    html.dark-theme .dashboard-text-secondary {
+        color: #94a3b8;
+    }
+    
+    /* Icon Backgrounds - Dark Mode */
+    html.dark-theme .dashboard-icon-blue {
+        background: rgba(37, 99, 235, 0.2);
+    }
+    
+    html.dark-theme .dashboard-icon-blue-text {
+        color: #60a5fa;
+    }
+    
+    html.dark-theme .dashboard-icon-yellow {
+        background: rgba(234, 179, 8, 0.2);
+    }
+    
+    html.dark-theme .dashboard-icon-yellow-text {
+        color: #fbbf24;
+    }
+    
+    html.dark-theme .dashboard-icon-green {
+        background: rgba(16, 185, 129, 0.2);
+    }
+    
+    html.dark-theme .dashboard-icon-green-text {
+        color: #34d399;
+    }
+    
+    html.dark-theme .dashboard-icon-red {
+        background: rgba(239, 68, 68, 0.2);
+    }
+    
+    html.dark-theme .dashboard-icon-red-text {
+        color: #f87171;
+    }
+    
+    html.dark-theme .dashboard-icon-orange-text {
+        color: #fb923c;
+    }
+    
+    html.dark-theme .dashboard-icon-purple-text {
+        color: #c084fc;
+    }
+    
+    /* Badges - Dark Mode */
+    html.dark-theme .dashboard-badge-yellow {
+        background: rgba(234, 179, 8, 0.2);
+        color: #fbbf24;
+    }
+    
+    html.dark-theme .dashboard-badge-green {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+    }
+    
+    html.dark-theme .dashboard-badge-red {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+    }
+    
+    /* Quick Actions - Dark Mode */
+    html.dark-theme .dashboard-quick-action-blue {
+        background: rgba(37, 99, 235, 0.1);
+        border-color: #1e40af;
+    }
+    
+    html.dark-theme .dashboard-quick-action-orange {
+        background: rgba(234, 88, 12, 0.1);
+        border-color: #c2410c;
+    }
+    
+    html.dark-theme .dashboard-quick-action-purple {
+        background: rgba(147, 51, 234, 0.1);
+        border-color: #7e22ce;
     }
 
-    /* Card header styling */
-    .card-header {
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        padding: 1.2rem 1.5rem;
-    }
-
-    /* Gradient borders for cards */
-    .border-success {
-        border-left: 5px solid transparent !important;
-        border-image: linear-gradient(to bottom, #28a745, #20c997) !important;
-        border-image-slice: 1 !important;
-    }
-
-    .border-info {
-        border-left: 5px solid transparent !important;
-        border-image: linear-gradient(to bottom, #17a2b8, #0dcaf0) !important;
-        border-image-slice: 1 !important;
-    }
-
-    .border-primary {
-        border-left: 5px solid transparent !important;
-        border-image: linear-gradient(to bottom, #0d6efd, #6610f2) !important;
-        border-image-slice: 1 !important;
-    }
-
-    .border-warning {
-        border-left: 5px solid transparent !important;
-        border-image: linear-gradient(to bottom, #ffc107, #fd7e14) !important;
-        border-image-slice: 1 !important;
-    }
-
-    .border-danger {
-        border-left: 5px solid transparent !important;
-        border-image: linear-gradient(to bottom, #dc3545, #c71f37) !important;
-        border-image-slice: 1 !important;
-    }
-
-    /* Enhanced widget icons */
-    .widgets-icons-2 {
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 15px;
-        font-size: 28px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-        background-size: 200% auto;
-        transition: all 0.3s ease;
-        position: relative;
-        z-index: 1;
-    }
-
-    .widgets-icons-2::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: inherit;
-        border-radius: inherit;
-        opacity: 0.7;
-        z-index: -1;
-        transform: scale(0.9);
-        transition: all 0.3s ease;
-    }
-
-    .card:hover .widgets-icons-2 {
-        background-position: right center;
-        transform: scale(1.05);
-    }
-
-    .card:hover .widgets-icons-2::before {
-        transform: scale(1.2);
-        opacity: 0.3;
-    }
-
-    .bg-gradient-success {
-        background-image: linear-gradient(45deg, #28a745, #20c997);
-    }
-
-    .bg-gradient-info {
-        background-image: linear-gradient(45deg, #17a2b8, #0dcaf0);
-    }
-
-    .bg-gradient-primary {
-        background-image: linear-gradient(45deg, #0d6efd, #6610f2);
-    }
-
-    .bg-gradient-warning {
-        background-image: linear-gradient(45deg, #ffc107, #fd7e14);
-    }
-
-    .bg-gradient-danger {
-        background-image: linear-gradient(45deg, #dc3545, #c71f37);
-    }
-
-    /* Transaction icons */
-    .transaction-icon {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-
-    tr:hover .transaction-icon {
-        transform: scale(1.1);
-    }
-
-    /* Progress bars */
-    .progress {
-        height: 8px !important;
-        overflow: visible;
-        background-color: rgba(0, 0, 0, 0.05);
-        border-radius: 10px;
-        margin-top: 15px;
-    }
-
-    .progress-bar {
-        position: relative;
-        border-radius: 10px;
-        overflow: visible;
-        background-size: 200% auto;
-        animation: progress-animation 2s linear infinite;
-    }
-
-    @keyframes progress-animation {
-        0% {
-            background-position: 0% center;
+    /* Animations */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
         }
-        50% {
-            background-position: 100% center;
-        }
-        100% {
-            background-position: 0% center;
-        }
-    }
-
-    .progress-bar::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: -4px;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: inherit;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: scale(1);
+        to {
             opacity: 1;
-        }
-        50% {
-            transform: scale(1.2);
-            opacity: 0.8;
-        }
-        100% {
-            transform: scale(1);
-            opacity: 1;
+            transform: translateY(0);
         }
     }
 
-    .bg-success {
-        background-image: linear-gradient(45deg, #28a745, #20c997) !important;
+    .animate-slide-in {
+        animation: slideInUp 0.6s ease-out forwards;
     }
 
-    .bg-info {
-        background-image: linear-gradient(45deg, #17a2b8, #0dcaf0) !important;
+    /* Card hover effects */
+    .hover-lift {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hover-lift:hover {
+        transform: translateY(-8px);
     }
 
-    .bg-primary {
-        background-image: linear-gradient(45deg, #0d6efd, #6610f2) !important;
-    }
-
-    .bg-warning {
-        background-image: linear-gradient(45deg, #ffc107, #fd7e14) !important;
-    }
-
-    .bg-danger {
-        background-image: linear-gradient(45deg, #dc3545, #c71f37) !important;
-    }
-
-    .bg-purple {
-        background-image: linear-gradient(45deg, #6f42c1, #8540c9) !important;
-    }
-
-    .bg-orange {
-        background-image: linear-gradient(45deg, #fd7e14, #f96700) !important;
-    }
-
-    .bg-teal {
-        background-image: linear-gradient(45deg, #20c997, #0fae81) !important;
-    }
-
-    /* Text colors */
-    .text-purple {
-        color: #6f42c1 !important;
-    }
-
-    .text-orange {
-        color: #fd7e14 !important;
-    }
-
-    .text-teal {
-        color: #20c997 !important;
-    }
-
-    /* Border colors */
-    .border-purple {
-        border-color: #6f42c1 !important;
-        border-image: linear-gradient(to bottom, #6f42c1, #8540c9) !important;
-        border-image-slice: 1 !important;
-    }
-
-    .border-orange {
-        border-color: #fd7e14 !important;
-        border-image: linear-gradient(to bottom, #fd7e14, #f96700) !important;
-        border-image-slice: 1 !important;
-    }
-
-    .border-teal {
-        border-color: #20c997 !important;
-        border-image: linear-gradient(to bottom, #20c997, #0fae81) !important;
-        border-image-slice: 1 !important;
-    }
-
-    /* Background light colors for badges */
-    .bg-light-purple {
-        background-color: rgba(111, 66, 193, 0.15) !important;
-    }
-
-    .bg-light-orange {
-        background-color: rgba(253, 126, 20, 0.15) !important;
-    }
-
-    .bg-light-teal {
-        background-color: rgba(32, 201, 151, 0.15) !important;
-    }
-
-    /* Gradient backgrounds */
-    .bg-gradient-purple {
-        background-image: linear-gradient(45deg, #6f42c1, #8540c9) !important;
-    }
-
-    .bg-gradient-orange {
-        background-image: linear-gradient(45deg, #fd7e14, #f96700) !important;
-    }
-
-    .bg-gradient-teal {
-        background-image: linear-gradient(45deg, #20c997, #0fae81) !important;
-    }
-
-    /* Enhanced text styling */
-    .fw-bold {
-        font-weight: 600 !important;
-    }
-
-    .text-secondary {
-        color: #6c757d !important;
-    }
-
-    /* Badge styling */
-    .badge {
-        padding: 0.5em 0.8em;
-        font-weight: 500;
-        letter-spacing: 0.3px;
-    }
-
-    /* Table styling */
-    .table-hover tbody tr {
-        transition: all 0.2s ease;
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: rgba(13, 110, 253, 0.05);
-        transform: translateX(5px);
-    }
-
-    /* Button styling */
-    .btn-outline-primary {
-        border-width: 1.5px;
-    }
-
-    .btn-outline-primary:hover {
-        box-shadow: 0 5px 15px rgba(13, 110, 253, 0.2);
-    }
-
-    .btn-primary {
-        box-shadow: 0 5px 15px rgba(13, 110, 253, 0.2);
-    }
-
-    /* Light background colors for badges and icons */
-    .bg-light-primary {
-        background-color: rgba(13, 110, 253, 0.1);
-    }
-
-    .bg-light-success {
-        background-color: rgba(40, 167, 69, 0.1);
-    }
-
-    .bg-light-info {
-        background-color: rgba(23, 162, 184, 0.1);
-    }
-
-    .bg-light-warning {
-        background-color: rgba(255, 193, 7, 0.1);
-    }
-
-    .bg-light-danger {
-        background-color: rgba(220, 53, 69, 0.1);
+    /* Gradient text */
+    .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 </style>
 @endpush
 
-
 @push('js')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Add animation to cards
-        const cards = document.querySelectorAll('.card');
+        // Chart data from backend
+        const chartData = @json($chartData);
+
+        // Check if user prefers dark mode
+        const isDarkMode = document.documentElement.classList.contains('dark-theme');
+        
+        // Chart.js default colors based on theme
+        const textColor = isDarkMode ? '#94a3b8' : '#64748b';
+        const gridColor = isDarkMode ? '#334155' : '#e2e8f0';
+        
+        // Line Chart Configuration
+        const lineCtx = document.getElementById('transactionLineChart');
+        if (lineCtx) {
+            const lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Deposits',
+                            data: chartData.deposits,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                        },
+                        {
+                            label: 'Withdraws',
+                            data: chartData.withdraws,
+                            borderColor: '#f97316',
+                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#f97316',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+                            titleColor: isDarkMode ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDarkMode ? '#cbd5e1' : '#475569',
+                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ৳' + context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                callback: function(value) {
+                                    return '৳' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // Bar Chart Configuration
+        const barCtx = document.getElementById('transactionBarChart');
+        if (barCtx) {
+            const barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Deposits',
+                            data: chartData.deposits,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                        },
+                        {
+                            label: 'Withdraws',
+                            data: chartData.withdraws,
+                            backgroundColor: 'rgba(249, 115, 22, 0.8)',
+                            borderColor: '#f97316',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+                            titleColor: isDarkMode ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDarkMode ? '#cbd5e1' : '#475569',
+                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ৳' + context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                callback: function(value) {
+                                    return '৳' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: textColor
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Animate cards on load
+        const cards = document.querySelectorAll('[class*="bg-gradient"]');
         cards.forEach((card, index) => {
             setTimeout(() => {
                 card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-
-                // Trigger reflow
-                card.offsetHeight;
-
-                // Apply animation
-                card.style.transition = 'all 0.5s ease';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
+                card.style.transform = 'translateY(30px)';
+                
+                requestAnimationFrame(() => {
+                    card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                });
             }, index * 100);
         });
 
-        // Add animation to progress bars
-        const progressBars = document.querySelectorAll('.progress-bar');
-        setTimeout(() => {
-            progressBars.forEach(bar => {
-                const width = bar.style.width;
-                bar.style.width = '0%';
+        // Add ripple effect to buttons
+        document.querySelectorAll('a[class*="group"]').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('div');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
 
-                // Trigger reflow
-                bar.offsetHeight;
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.classList.add('ripple');
 
-                // Apply animation
-                bar.style.transition = 'width 1s ease-in-out';
-                bar.style.width = width;
-            });
-        }, 500);
+                this.appendChild(ripple);
 
-        // Make filter buttons functional
-        const filterButtons = document.querySelectorAll('.btn-group .btn');
-        const transactionRows = document.querySelectorAll('tbody tr');
-
-        filterButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // Remove active class from all buttons
-                filterButtons.forEach(btn => btn.classList.remove('active'));
-
-                // Add active class to clicked button
-                this.classList.add('active');
-
-                const filter = this.textContent.trim().toLowerCase();
-
-                // Show/hide rows based on filter
-                transactionRows.forEach(row => {
-                    if (filter === 'all') {
-                        row.style.display = '';
-                    } else if (filter === 'payments') {
-                        row.style.display = row.querySelector('.text-primary') ? '' : 'none';
-                    } else if (filter === 'mfs') {
-                        row.style.display = row.querySelector('.text-warning') ? '' : 'none';
-                    } else if (filter === 'withdrawals') {
-                        row.style.display = row.querySelector('.text-danger') ? '' : 'none';
-                    }
-                });
+                setTimeout(() => ripple.remove(), 600);
             });
         });
     });

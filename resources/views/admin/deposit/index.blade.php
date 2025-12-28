@@ -2,259 +2,405 @@
 @section('title', 'Merchant Deposit Requests')
 
 @section('content')
-<div class="container-fluid py-4">
-
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header  text-white">
-            <h5 class="mb-0">Deposit Request List
-
-            <hr>
-            
-            </h5>
-            
-        </div>
-
-        {{-- Filters --}}
-        <div class="card-body">
-            <form id="filter-form" class="row g-3 align-items-end">
-                <div class="col-md-2">
-                    <label class="form-label">Show</label>
-                    <select class="form-select" name="rows">
-                        <option value="10">10</option>
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Transaction ID</label>
-                    <input type="text" class="form-control" name="trxid" placeholder="Enter ID">
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
-                        <option value="">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="success">Success</option>
-                        <option value="3">Rejected</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Customer Name/Number</label>
-                    <input type="text" class="form-control" name="cust_name" placeholder="Enter name or number">
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Method Number</label>
-                    <input type="text" class="form-control" name="method_number" placeholder="Enter method">
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Reference</label>
-                    <input type="text" class="form-control" name="reference" placeholder="Reference">
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">MFS</label>
-                    <select class="form-select" name="mfs">
-                        <option value="">--Select--</option>
-                        <option value="nagad">NAGAD</option>
-                        <option value="bkash">bKash</option>
-                        <option value="16216">Rocket</option>
-                        <option value="upay">upay</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Payment Type</label>
-                    <select class="form-select" name="payment_type">
-                        <option value="">All</option>
-                        <option value="P2A">P2A - Cash Out</option>
-                        <option value="P2P">P2P - Send Money</option>
-                        <option value="P2C">P2C - Payment</option>
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Merchant</label>
-                    <select class="form-select select2" name="merchant_id">
-                        <option value="">All</option>
-                        @foreach($merchants as $merchant)
-                            <option value="{{ $merchant->id }}">{{ $merchant->fullname }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">Start Date</label>
-                    <input type="date" class="form-control" name="start_date">
-                </div>
-
-                <div class="col-md-2">
-                    <label class="form-label">End Date</label>
-                    <input type="date" class="form-control" name="end_date">
-                </div>
-
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-danger w-100 mt-3">Search</button>
-                </div>
-            </form>
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 px-4 sm:px-6 lg:px-8">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                    </div>
+                    Deposit Requests
+                </h1>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Manage and review all merchant deposit requests</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="$('#filter-form-container').slideToggle(300)" class="inline-flex items-center px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                    </svg>
+                    Filters
+                </button>
+            </div>
         </div>
     </div>
 
-    {{-- DataTable --}}
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered mb-0" id="deposit_table">
-                    <thead class="table-light text-center">
-                        <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Method</th>
-                            <th>MFS Method/Trx</th>
-                            <th>Amount</th>
-                            <th>Fee / Comm</th>
-                            <th>Balance Change</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+    <!-- Filters Card -->
+    <div id="filter-form-container" class="mb-6" style="display: none;">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 border-b border-green-600">
+                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                    </svg>
+                    Advanced Filters
+                </h3>
             </div>
+            <div class="p-6">
+                <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    
+                    <!-- Show Entries -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Show Entries</label>
+                        <div class="relative">
+                            <select class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="rows">
+                                <option value="10">10 rows</option>
+                                <option value="50" selected>50 rows</option>
+                                <option value="100">100 rows</option>
+                                <option value="200">200 rows</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Transaction ID -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Transaction ID</label>
+                        <input type="text" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="trxid" placeholder="Enter transaction ID">
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                        <select name="status" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="success">Success</option>
+                            <option value="3">Rejected</option>
+                        </select>
+                    </div>
+
+                    <!-- Customer Name/Number -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Customer Info</label>
+                        <input type="text" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="cust_name" placeholder="Name or number">
+                    </div>
+
+                    <!-- Method Number -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Method Number</label>
+                        <input type="text" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="method_number" placeholder="Enter method number">
+                    </div>
+
+                    <!-- Reference -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Reference</label>
+                        <input type="text" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="reference" placeholder="Enter reference">
+                    </div>
+
+                    <!-- MFS -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">MFS Provider</label>
+                        <select class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="mfs">
+                            <option value="">All Providers</option>
+                            <option value="nagad">NAGAD</option>
+                            <option value="bkash">bKash</option>
+                            <option value="16216">Rocket</option>
+                            <option value="upay">Upay</option>
+                        </select>
+                    </div>
+
+                    <!-- Payment Type -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Payment Type</label>
+                        <select class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="payment_type">
+                            <option value="">All Types</option>
+                            <option value="P2A">P2A - Cash Out</option>
+                            <option value="P2P">P2P - Send Money</option>
+                            <option value="P2C">P2C - Payment</option>
+                        </select>
+                    </div>
+
+                    <!-- Merchant -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Merchant</label>
+                        <select class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all select2" name="merchant_id">
+                            <option value="">All Merchants</option>
+                            @foreach($merchants as $merchant)
+                                <option value="{{ $merchant->id }}">{{ $merchant->fullname }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+                        <input type="date" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="start_date">
+                    </div>
+
+                    <!-- End Date -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+                        <input type="date" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="end_date">
+                    </div>
+
+                    <!-- Search Button -->
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Search
+                        </button>
+                    </div>
+                </form>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- DataTable Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full" id="deposit_table">
+                <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-b-2 border-gray-200 dark:border-gray-600">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">#</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Merchant</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Method</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">MFS/Trx</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Fee/Comm</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Balance</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+            </table>
         </div>
     </div>
 </div>
 
-
+<!-- Details Modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Deposit Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content rounded-2xl border-0 shadow-2xl dark:bg-gray-800">
+            <div class="modal-header bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-t-2xl border-0">
+                <h5 class="modal-title font-bold flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Deposit Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <tbody>
-                            <tr><th>Payment ID</th><td id="detail_payment_id"></td></tr>
-                            <tr><th>Request ID</th><td id="detail_request_id"></td></tr>
-                            <tr><th>TRX ID</th><td id="detail_trxid"></td></tr>
-                            <tr><th>Name</th><td id="detail_merchant_name"></td></tr>
-                            <tr><th>Designation</th><td id="detail_designation"></td></tr>
-                            <tr><th>Customer Phone</th><td id="detail_cust_phone"></td></tr>
-                            <tr><th>Reference</th><td id="detail_reference"></td></tr>
-                            <tr><th>Payment Method</th><td id="detail_payment_method"></td></tr>
-                            <tr><th>Payment Type</th><td id="detail_payment_type"></td></tr>
-                            <tr><th>Payment Trx</th><td id="detail_payment_trx"></td></tr>
-                            <tr><th>Amount</th><td id="detail_amount"></td></tr>
-                            <tr><th>Fee</th><td id="detail_fee"></td></tr>
-                            <tr><th>Commission</th><td id="detail_commission"></td></tr>
-                            <tr><th>Balance Change</th><td id="detail_balance_change"></td></tr>
-                            <tr><th>From Number</th><td id="detail_from_number"></td></tr>
-                            <tr><th>Note</th><td id="detail_note"></td></tr>
-                            <tr><th>Status</th><td id="detail_status"></td></tr>
-                            <tr><th>Accepted By</th><td id="detail_accepted_by"></td></tr>
-                            <tr><th>Callback URL</th><td id="detail_callback_url"></td></tr>
-                            <tr><th>Webhook URL</th><td id="detail_webhook_url"></td></tr>
-                            <tr><th>Created At</th><td id="detail_created_at"></td></tr>
+            <div class="modal-body p-6">
+                <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table class="w-full text-sm">
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 w-1/3">Payment ID</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_payment_id"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Request ID</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_request_id"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">TRX ID</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_trxid"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Name</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_merchant_name"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Designation</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_designation"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Customer Phone</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_cust_phone"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Reference</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_reference"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Payment Method</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_payment_method"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Payment Type</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_payment_type"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Payment Trx</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_payment_trx"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Amount</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100 font-bold" id="detail_amount"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Fee</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_fee"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Commission</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_commission"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Balance Change</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_balance_change"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">From Number</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_from_number"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Note</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_note"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Status</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_status"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Accepted By</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_accepted_by"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Callback URL</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100 text-xs break-all" id="detail_callback_url"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Webhook URL</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100 text-xs break-all" id="detail_webhook_url"></td>
+                            </tr>
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">Created At</th>
+                                <td class="px-4 py-3 text-gray-900 dark:text-gray-100" id="detail_created_at"></td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer border-0 px-6 pb-6">
+                <button type="button" class="px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Reject Modal -->
 <div class="modal fade" id="reject_modal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered custom-modal">
-        <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-2xl border-0 shadow-2xl dark:bg-gray-800">
             <form id="reject_form">
                 @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title">Reject Transaction Confirm</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-2xl border-0">
+                    <h5 class="modal-title font-bold flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Reject Transaction
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 
-                <div class="modal-body">
+                <div class="modal-body p-6">
                     <input type="hidden" name="transId" id="modal_id">
                     
-                    <div class="mb-3">
-                        <label for="reason" class="form-label">Reject Reason</label>
-                        <input id="reason" type="text" name="reason" class="form-control" required>
+                    <div class="mb-4">
+                        <label for="reason" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Rejection Reason *</label>
+                        <textarea id="reason" name="reason" rows="3" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none" placeholder="Enter the reason for rejection..." required></textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This reason will be visible to the merchant.</p>
                     </div>
                 </div>
                 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Submit</button>
+                <div class="modal-footer border-0 px-6 pb-6 gap-3">
+                    <button type="button" class="px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">Reject Transaction</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Approve Modal -->
 <div class="modal fade" id="spamModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="spamForm">
-        @csrf
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Approve Payment Request</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <input type="hidden" name="payment_id" id="spam_payment_id">
-            
-            <div class="alert alert-info">
-                <i class="bx bx-info-circle"></i>
-                <strong>Note:</strong> Fees and commissions will be automatically calculated based on the merchant's configured rates for the selected MFS operator.
+    <div class="modal-dialog modal-dialog-centered">
+        <form id="spamForm">
+            @csrf
+            <div class="modal-content rounded-2xl border-0 shadow-2xl dark:bg-gray-800">
+                <div class="modal-header bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-t-2xl border-0">
+                    <h5 class="modal-title font-bold flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Approve Payment Request
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body p-6">
+                    <input type="hidden" name="payment_id" id="spam_payment_id">
+                    
+                    <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                        <div class="flex gap-3">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            <div class="text-sm text-blue-800 dark:text-blue-300">
+                                <strong>Note:</strong> Fees and commissions will be automatically calculated based on the merchant's configured rates for the selected MFS operator.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="spam_mfs_operator_id" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                MFS Operator <span class="text-red-500">*</span>
+                            </label>
+                            <select class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="mfs_operator_id" id="spam_mfs_operator_id" required>
+                                <option value="">Select MFS Operator</option>
+                                @foreach($mfsOperators as $operator)
+                                    <option value="{{ $operator->id }}" data-name="{{ $operator->name }}" data-type="{{ $operator->type }}">
+                                        {{ $operator->name }} ({{ $operator->type }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="spam_sim_id" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                SIM ID / Method Number <span class="text-gray-400">(Optional)</span>
+                            </label>
+                            <input type="text" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="sim_id" id="spam_sim_id" placeholder="Enter SIM ID or method number">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave empty to keep the existing SIM ID</p>
+                        </div>
+                        
+                        <div>
+                            <label for="spam_payment_trx" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Payment Method Trx <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="payment_method_trx" id="spam_payment_trx" placeholder="Enter transaction ID" required>
+                        </div>
+                        
+                        <div>
+                            <label for="spam_amount" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Amount <span class="text-gray-400">(Optional)</span>
+                            </label>
+                            <input type="number" step="0.01" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" name="amount" id="spam_amount" placeholder="Enter amount">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave empty to keep the original amount</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-0 px-6 pb-6 gap-3">
+                    <button type="button" class="px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200">Approve Payment</button>
+                </div>
             </div>
-            
-            <div class="mb-3">
-                <label for="mfs_operator_id" class="form-label">MFS Operator <span class="text-danger">*</span></label>
-                <select class="form-select" name="mfs_operator_id" id="spam_mfs_operator_id" required>
-                    <option value="">Select MFS Operator</option>
-                    @foreach($mfsOperators as $operator)
-                        <option value="{{ $operator->id }}" data-name="{{ $operator->name }}" data-type="{{ $operator->type }}">
-                            {{ $operator->name }} ({{ $operator->type }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            
-            <div class="mb-3">
-                <label for="sim_id" class="form-label">SIM ID / Method Number (Optional)</label>
-                <input type="text" class="form-control" name="sim_id" id="spam_sim_id" placeholder="Enter SIM ID or method number">
-                <small class="text-muted">Leave empty to keep the existing SIM ID</small>
-            </div>
-            
-            <div class="mb-3">
-                <label for="payment_method_trx" class="form-label">Payment Method Trx <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="payment_method_trx" id="spam_payment_trx" required>
-            </div>
-            <div class="mb-3">
-                <label for="amount" class="form-label">Amount (Optional)</label>
-                <input type="number" step="0.01" class="form-control" name="amount" id="spam_amount">
-                <small class="text-muted">Leave empty to keep the original amount</small>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-success">Submit</button>
-          </div>
-        </div>
-    </form>
-  </div>
+        </form>
+    </div>
 </div>
 
 
@@ -266,75 +412,126 @@
 <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
+    /* DataTables Custom Styling with Tailwind */
+    #deposit_table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    #deposit_table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    #deposit_table tbody tr:hover {
+        background-color: rgba(16, 185, 129, 0.05) !important;
+        transform: scale(1.001);
+    }
+
+    #deposit_table tbody td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .dark #deposit_table tbody td {
+        border-bottom: 1px solid #374151;
+        color: #e5e7eb;
+    }
+
     .dataTables_wrapper .dataTables_processing {
-        position: absolute;
+        position: fixed;
         top: 50%;
         left: 50%;
-        width: auto;
-        padding: 10px 30px;
-        background: rgba(0,0,0,0.7);
-        color: #fff;
-        font-weight: bold;
-        border-radius: 5px;
         transform: translate(-50%, -50%);
+        width: auto;
+        padding: 20px 40px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
         z-index: 9999;
+        border: none;
     }
-    .table td, .table th {
-        vertical-align: middle;
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.5rem 1rem;
+        margin: 0 0.25rem;
+        border-radius: 0.5rem;
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: #374151;
+        transition: all 0.2s;
     }
-    .table td, .table th {
-        vertical-align: middle;
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-color: #10b981;
     }
-    .btn-approve { background-color: #28a745; color: #fff; }
-    .btn-reject { background-color: #dc3545; color: #fff; }
-    
-    /* Table row borders for better separation */
-    #deposit_table.dataTable tbody tr {
-        border-bottom: 1px solid #dee2e6 !important;
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-color: #10b981;
     }
-    
-    #deposit_table.dataTable tbody td {
-        border-bottom: 1px solid #dee2e6 !important;
+
+    .dataTables_wrapper .dataTables_info {
+        padding: 1rem 0;
+        color: #6b7280;
+        font-size: 0.875rem;
     }
-    
-    #deposit_table tbody tr:hover {
-        background-color: #f8f9fa !important;
+
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e5e7eb;
+        margin: 0 0.5rem;
     }
-    
-    /* Action column styling */
-    #deposit_table tbody td:last-child {
-        text-align: center;
-        white-space: normal;
-        padding: 6px 4px !important;
-        min-width: 80px;
-        max-width: 90px;
+
+    /* Select2 Tailwind Styling */
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        border-radius: 0.75rem;
+        border: 1px solid #d1d5db;
+        padding: 0.5rem 1rem;
     }
-    
-    #deposit_table tbody td:last-child .btn {
-        display: block;
-        width: 100%;
-        margin-bottom: 3px;
-        padding: 3px 6px;
-        font-size: 10px;
-        line-height: 1.3;
-        border-radius: 3px;
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px;
+        color: #111827;
     }
-    
-    #deposit_table tbody td:last-child .btn:last-child {
-        margin-bottom: 0;
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px;
     }
-    
-    #deposit_table tbody td:last-child .btn i {
-        font-size: 11px;
-        vertical-align: middle;
+
+    /* Dark mode for select2 */
+    .dark .select2-container--default .select2-selection--single {
+        background-color: #374151;
+        border-color: #4b5563;
     }
-    
-    /* Hide button text on icon-only buttons */
-    #deposit_table tbody td:last-child .btn-outline-primary .bx-show,
-    #deposit_table tbody td:last-child .btn-outline-danger .lni-cross-circle,
-    #deposit_table tbody td:last-child .btn-outline-danger .bx-hourglass {
-        margin: 0;
+
+    .dark .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #e5e7eb;
     }
+
+    /* Badge styles */
+    .badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .badge.bg-success { background-color: #10b981; color: white; }
+    .badge.bg-warning { background-color: #f59e0b; color: white; }
+    .badge.bg-danger { background-color: #ef4444; color: white; }
+    .badge.bg-info { background-color: #3b82f6; color: white; }
 </style>
 @endpush
 

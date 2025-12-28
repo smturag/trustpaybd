@@ -59,6 +59,7 @@ class Kernel extends HttpKernel
         'admin.guest' => \App\Http\Middleware\RedirectIfAdmin::class,
 		'ck2stepadmin' => \App\Http\Middleware\CheckSecurityAdmin::class,
 		'prevent-back-history' => \App\Http\Middleware\PreventBackHistory::class,
+        'permission' => \App\Http\Middleware\CheckPermission::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,

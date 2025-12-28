@@ -970,72 +970,37 @@
                 <h2 class="text-3xl font-bold text-gray-900">Simple, Transparent Pricing</h2>
                 <p class="text-gray-600 mt-4">No hidden fees. No surprises.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="p-8 bg-white rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl font-bold mb-4">Starter</h3>
-                    <div class="text-4xl font-bold mb-4">1%</div>
-                    <p class="text-gray-600 mb-6">Per successful charge</p>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center">
-                            <i class="fas fa-check text-green-500 mr-2"></i>
-                            All payment methods
-                        </li>
-                        <li class="flex items-center">
-                            <i class="fas fa-check text-green-500 mr-2"></i>
-                            24/7 support
-                        </li>
-                    </ul>
-                    <button onclick="window.location.href='{{ route('customer.view_create_account') }}'"
-                        class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
-                        Become a Merchant
-                    </button>
-                </div>
-                <div class="p-8 bg-indigo-600 rounded-xl shadow-lg text-white">
-                    <h3 class="text-xl font-bold mb-4">Professional</h3>
-                    <div class="text-4xl font-bold mb-4">1%</div>
-                    <p class="text-indigo-100 mb-6">Per successful charge</p>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center">
-                            <i class="fas fa-check mr-2"></i>
-                            All Starter features
-                        </li>
-                        <li class="flex items-center">
-                            <i class="fas fa-check mr-2"></i>
-                            Advanced analytics
-                        </li>
-                        <li class="flex items-center">
-                            <i class="fas fa-check mr-2"></i>
-                            Custom integration
-                        </li>
-                    </ul>
-                    <button onclick="window.location.href='{{ route('customer.view_create_account') }}'"
-                        class="w-full bg-white text-indigo-600 py-2 rounded-lg hover:bg-indigo-50">
-                        Become a Merchant
-                    </button>
-                </div>
-                <div class="p-8 bg-white rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl font-bold mb-4">Enterprise</h3>
-                    <div class="text-4xl font-bold mb-4">Custom</div>
-                    <p class="text-gray-600 mb-6">For large businesses</p>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center">
-                            <i class="fas fa-check text-green-500 mr-2"></i>
-                            All Pro features
-                        </li>
-                        <li class="flex items-center">
-                            <i class="fas fa-check text-green-500 mr-2"></i>
-                            Dedicated support
-                        </li>
-                        <li class="flex items-center">
-                            <i class="fas fa-check text-green-500 mr-2"></i>
-                            Custom pricing
-                        </li>
-                    </ul>
-                    <button onclick="window.location.href='{{ route('company') }}#contact'"
-                        class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
-                        Contact Sales
-                    </button>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                @forelse($pricingPlans as $plan)
+                    <div class="p-8 {{ $plan->is_featured ? 'bg-indigo-600 text-white' : 'bg-white' }} rounded-xl shadow-{{ $plan->is_featured ? 'lg' : 'sm' }} border {{ $plan->is_featured ? '' : 'border-gray-100' }}">
+                        <h3 class="text-xl font-bold mb-4">{{ $plan->name }}</h3>
+                        <div class="text-4xl font-bold mb-4">{{ $plan->price }}</div>
+                        <p class="{{ $plan->is_featured ? 'text-indigo-100' : 'text-gray-600' }} mb-6">{{ $plan->price_type }}</p>
+                        @if($plan->description)
+                            <p class="{{ $plan->is_featured ? 'text-indigo-100' : 'text-gray-600' }} text-sm mb-6">{{ $plan->description }}</p>
+                        @endif
+                        @if($plan->features && is_array($plan->features))
+                            <ul class="space-y-3 mb-8">
+                                @foreach($plan->features as $feature)
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check {{ $plan->is_featured ? '' : 'text-green-500' }} mr-2"></i>
+                                        {{ $feature }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($plan->button_link && $plan->button_text)
+                            <button onclick="window.location.href='{{ $plan->button_link }}'"
+                                class="w-full {{ $plan->is_featured ? 'bg-white text-indigo-600 hover:bg-indigo-50' : 'bg-indigo-600 text-white hover:bg-indigo-700' }} py-2 rounded-lg">
+                                {{ $plan->button_text }}
+                            </button>
+                        @endif
+                    </div>
+                @empty
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-600">No pricing plans available at the moment.</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>

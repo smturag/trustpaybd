@@ -31,14 +31,45 @@ class DeveloperController
         return view('merchant.developer')->with($data);
     }
 
-    public function serviceRates()
+    public function serviceRates(Request $request)
     {
         $merchantId = auth()->guard('merchant')->user()->id;
+
+        // Get all operators for dropdown (unique by name)
+        $allOperators = MfsOperator::where('status', 1)
+            ->orderBy('name')
+            ->get()
+            ->unique('name');
+
+        // Build query for filtered operators
+        $operatorsQuery = MfsOperator::where('status', 1);
+
+        // Apply operator filter
+        if ($request->filled('operator')) {
+            $operatorsQuery->where('name', $request->operator);
+        }
+
+        // Apply type filter
+        if ($request->filled('type')) {
+            $operatorsQuery->where('type', $request->type);
+        }
+
+        $operators = $operatorsQuery->orderBy('name')->get();
+
+        // Filter by action if needed
+        $filteredOperators = $operators;
+        $action = $request->action;
 
         $data = [
             'pageTitle' => 'Service Rates',
             'rates' => OperatorFeeCommission::where('merchant_id', $merchantId)->get(),
-            'operators' => MfsOperator::where('status', 1)->orderBy('name')->get(),
+            'operators' => $filteredOperators,
+            'allOperators' => $allOperators,
+            'filters' => [
+                'operator' => $request->operator,
+                'type' => $request->type,
+                'action' => $request->action,
+            ],
         ];
 
         return view('merchant.developer.service_rates')->with($data);

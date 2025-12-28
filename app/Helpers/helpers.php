@@ -2137,5 +2137,50 @@ if (!function_exists('getStringBetweenForMassage')) {
     }
 }
 
+/**
+ * Check if the current admin has a specific permission
+ */
+if (!function_exists('can')) {
+    function can($permission)
+    {
+        $admin = Auth::guard('admin')->user();
+        
+        if (!$admin) {
+            return false;
+        }
 
+        return $admin->hasPermission($permission);
+    }
+}
 
+/**
+ * Check if the current admin has any of the given permissions
+ */
+if (!function_exists('canAny')) {
+    function canAny($permissions)
+    {
+        $admin = Auth::guard('admin')->user();
+        
+        if (!$admin) {
+            return false;
+        }
+
+        return $admin->hasAnyPermission($permissions);
+    }
+}
+
+/**
+ * Check if the current admin has all of the given permissions
+ */
+if (!function_exists('canAll')) {
+    function canAll($permissions)
+    {
+        $admin = Auth::guard('admin')->user();
+        
+        if (!$admin) {
+            return false;
+        }
+
+        return $admin->hasAllPermissions($permissions);
+    }
+}

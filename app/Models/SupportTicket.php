@@ -8,5 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 class SupportTicket extends Model
 {
     use HasFactory;
-	protected $guarded = [];  
+	protected $guarded = [];
+	
+	/**
+     * Get the attachments for the support ticket.
+     */
+    public function attachments()
+    {
+        return $this->hasMany(SupportAttachment::class, 'ticket_id');
+    }
 }

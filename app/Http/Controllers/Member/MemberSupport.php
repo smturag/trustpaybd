@@ -9,6 +9,8 @@ use Auth;
 use Session;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketComment;
+use App\Events\TicketCreated;
+use App\Events\TicketReplied;
 
 class MemberSupport extends Controller
 {
@@ -48,6 +50,9 @@ class MemberSupport extends Controller
            'comment' => $request->detail,
         ]);
 
+        // Fire event to notify admin
+        event(new TicketCreated($ticket));
+
         Session::flash('message', 'Successfully Created Ticket');
         return redirect()->route('supportList');
 
@@ -82,8 +87,13 @@ class MemberSupport extends Controller
 
         SupportTicket::where('ticket', $ticket)
             ->update([
-               'status' => 3
+               'status' => 3,
+               'last_reply_at' => now()
             ]);
+
+        // Fire event to notify admin about reply
+        $ticketObject = SupportTicket::where('ticket', $ticket)->first();
+        event(new TicketReplied($ticketObject));
 
         return redirect()->back()->with('message', 'Message Send Successful');
     }

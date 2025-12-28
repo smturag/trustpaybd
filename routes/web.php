@@ -49,7 +49,8 @@ Route::get('/fcm', function () {
 
 
 Route::get('/', function () {
-    return view('customer-panel.customer_welcome');
+    $pricingPlans = \App\Models\PricingPlan::getActivePlans();
+    return view('customer-panel.customer_welcome', compact('pricingPlans'));
 })->name('home');
 
 

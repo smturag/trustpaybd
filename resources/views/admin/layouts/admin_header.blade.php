@@ -1,179 +1,121 @@
 <!--start header -->
-<header>
-    <div class="topbar d-flex align-items-center">
-        <nav class="navbar navbar-expand gap-3">
+<header class="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm transition-all duration-200 border-b border-gray-200 dark:border-gray-700">
+    <div class="transition-all duration-300">
+        <nav class="relative">
+            <div class="flex items-center justify-between h-16 px-4 lg:px-6">
+                <!-- Left Section: Mobile Toggle + Logo + Quick Actions -->
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <!-- Mobile Sidebar Toggle -->
+                    <button id="mobileSidebarToggle" class="lg:hidden p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gradient-to-br hover:from-blue-500 hover:to-blue-600 hover:text-white transition-all duration-200 shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                    
+                    <!-- Logo (visible on larger screens) -->
+                    <a href="{{ route('admin_dashboard') }}" class="hidden lg:flex items-center space-x-2 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-105">
+                            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                        </div>
+                        <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Dashboard</span>
+                    </a>
+                    
+                    @php
+                        $depositCount = App\Models\PaymentRequest::where('status', 0)->whereNotNull('payment_method')->count();
+                        $success = App\Models\ServiceRequest::whereIn('status', [2, 3])->count();
+                        $pending = App\Models\ServiceRequest::where('status', 0)->count();
+                        $wating = App\Models\ServiceRequest::where('status', 1)->count();
+                        $reject = App\Models\ServiceRequest::where('status', 4)->count();
+                        $processing = App\Models\ServiceRequest::where('status', 5)->count();
+                        $failed = App\Models\ServiceRequest::where('status', 6)->count();
+                        $MakeCount = $pending + $wating + $processing + $failed;
+                    @endphp
+                    
+                    <!-- Deposit Quick Link -->
+                    <a href="{{ route('admin.merchant.payment-request') }}" class="group relative hidden sm:flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                        <span class="font-semibold text-sm text-white">Deposit</span>
+                        @if($depositCount > 0)
+                            <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg animate-pulse min-w-[20px] text-center ring-2 ring-white">{{ $depositCount }}</span>
+                        @endif
+                    </a>
 
-            <div class="mobile-toggle-menu"><i class='bx bx-menu'></i></div>
+                    <!-- Withdraw Quick Link -->
+                    <a href="{{ route('serviceReq', 'all') }}" class="group relative hidden sm:flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-sm text-white">Withdraw</span>
+                        @if($MakeCount > 0)
+                            <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg animate-pulse min-w-[20px] text-center ring-2 ring-white">{{ $MakeCount }}</span>
+                        @endif
+                    </a>
+                </div>
 
-            <!-- Quick Access Buttons -->
-            <div class="d-none d-md-flex align-items-center ms-3">
-                <a href="{{ route('admin.merchant.payment-request') }}" class="btn btn-sm btn-outline-primary me-2">
-                    <i class='bx bxs-credit-card me-1'></i> Deposit
-                    <span
-                        class="badge bg-danger rounded-pill ms-auto right">{{ App\Models\PaymentRequest::where('status', 0)->whereNotNull('payment_method')->count() }}</span>
-                </a>
-                <a href="{{ route('serviceReq', 'all') }}" class="btn btn-sm btn-outline-warning me-2">
-                    <i class='bx bx-mobile-alt me-1'></i> Withdraw
-                      @php
-                    $success = App\Models\ServiceRequest::whereIn('status', [2, 3])->count();
-                    $pending = App\Models\ServiceRequest::where('status', 0)->count();
-                    $wating = App\Models\ServiceRequest::where('status', 1)->count();
-                    $reject = App\Models\ServiceRequest::where('status', 4)->count();
-                    $processing = App\Models\ServiceRequest::where('status', 5)->count();
-                    $failed = App\Models\ServiceRequest::where('status', 6)->count();
-                    $MakeCount = $pending + $wating + $processing + $failed;
-                @endphp
+                <!-- Right Section: User Actions -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    
+                    <!-- Support Ticket Notifications -->
+                    @include('admin.partials.notification_dropdown')
 
-                <span class="badge bg-danger rounded-pill ms-auto right">{{ $MakeCount }}</span>
-                </a>
-                {{--
+                    <!-- Dark Mode Toggle -->
+                    <button id="darkModeToggle" class="hidden sm:block p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group">
+                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
 
-                <a href="{{ route('admin.wallet.transactions') }}" class="btn btn-sm btn-outline-info">
-                    <i class='bx bx-transfer me-1'></i> Wallet Transaction
-                </a>--}}
-            </div>
+                    <!-- User Profile Dropdown -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center space-x-2 p-1 sm:p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group">
+                            <img src="{{ Auth::guard('admin')->user()->profile_pic ? asset('storage/'.Auth::guard('admin')->user()->profile_pic) : asset('static/backend/images/avatars/avatar-2.png') }}" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-blue-500 dark:group-hover:ring-blue-400 transition-all duration-200" alt="avatar" />
+                            <div class="hidden md:block text-left">
+                                <p class="font-bold text-sm text-gray-800 dark:text-gray-200 leading-tight">{{ ucwords(Auth::guard('admin')->user()->admin_name) }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 leading-tight">{{ ucwords(Auth::guard('admin')->user()->type) }}</p>
+                            </div>
+                            <svg class="hidden sm:block w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
 
-            <!-- Notification Bell -->
-            <div class="top-menu ms-auto">
-                <ul class="navbar-nav align-items-center gap-2">
-                    <li class="nav-item dropdown dropdown-large">
-                        <a class="nav-link dropdown-toggle dropdown-toggle-nocaret position-relative" href="#" data-bs-toggle="dropdown">
-                            <i class='bx bx-bell fs-5'></i>
-                            @php $notificationCount = 0; @endphp
-                            @if($notificationCount > 0)
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.75rem;min-width:22px;">
-                                    {{ $notificationCount }}
-                                </span>
-                            @endif
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <div class="header-notifications-list p-3">
-                                <h6 class="mb-3">Notifications</h6>
-                                <div class="text-center py-4">
-                                    <p class="mt-2 small text-muted">No new notifications</p>
-                                </div>
+                        <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95 translate-y-1" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50" style="display: none;">
+                            <div class="px-5 py-4 bg-gradient-to-r from-blue-500 to-purple-600 border-b border-gray-200 dark:border-gray-700">
+                                <p class="font-bold text-sm text-white">{{ ucwords(Auth::guard('admin')->user()->admin_name) }}</p>
+                                <p class="text-xs text-blue-100 mt-0.5">{{ Auth::guard('admin')->user()->email ?? 'Admin' }}</p>
+                            </div>
+                            <div class="py-1">
+                                <a href="{{ route('admin.profile') }}" class="flex items-center space-x-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                                    <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white font-medium">Profile</span>
+                                </a>
+                                <a href="{{ route('reset_balance') }}" class="flex items-center space-x-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                                    <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white font-medium">Reset Balance</span>
+                                </a>
+                            </div>
+                            <div class="border-t border-gray-200 dark:border-gray-600">
+                                <a href="{{ route('adminlogout') }}" class="flex items-center space-x-3 px-5 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group">
+                                    <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-500 font-medium">Logout</span>
+                                </a>
                             </div>
                         </div>
-                    </li>
-                    <h5 class="text-center flex-grow-1 text-danger" id="billing"></h5>
-                    <a href="https://billing.irecharge.net" target="_blank" id="billing-link" style="display: none;"> <u class="text-success"> Renew Now</u></a>
-                    <li class="nav-item dark-mode d-sm-flex">
-                        <a class="nav-link dark-mode-icon" href="javascript:;"><i class='bx bx-moon'></i></a>
-                    </li>
-                </ul>
-            </div>
-            <div class="user-box dropdown px-3">
-                <a class="d-flex align-items-center nav-link dropdown-toggle gap-3 dropdown-toggle-nocaret" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img src="{{ asset('static/backend/images/avatars/avatar-2.png') }}" class="user-img" alt="user avatar" />
-                    <div class="user-info">
-                        <p class="user-name mb-0">{{ ucwords(Auth::guard('admin')->user()->admin_name) }}</p>
-                        <p class="designation mb-0">{{ ucwords(Auth::guard('admin')->user()->type) }}</p>
                     </div>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item d-flex align-items-center" href="{{ route('admin.profile') }}"><i class="bx bx-user fs-5"></i><span>Profile</span></a></li>
-                    <li><a class="dropdown-item d-flex align-items-center" href="javascript:;"><i class="bx bx-cog fs-5"></i><span>Settings</span></a>
-                    </li>
-                    {{-- <li><a class="dropdown-item d-flex align-items-center" href="javascript:;"><i class="bx bx-dollar-circle fs-5"></i><span>Earnings</span></a>
-                    </li> --}}
-                    <li><a class="dropdown-item d-flex align-items-center" href="{{ route('reset_balance') }}"><i class="bx bx-download fs-5"></i><span>Reset Balance</span></a>
-                    </li>
-                    <li>
-                        <div class="dropdown-divider mb-0"></div>
-                    </li>
-                    <li><a class="dropdown-item d-flex align-items-center" href="{{ route('adminlogout') }}"><i class="bx bx-log-out-circle"></i><span>Logout</span></a>
-                    </li>
-                </ul>
+                </div>
             </div>
         </nav>
     </div>
 </header>
-
- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="script.js"></script>
-
-<script>
-// Improved dark mode toggle implementation
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if dark mode preference exists in local storage
-    var isDarkMode = localStorage.getItem('darkModePreference') === 'true';
-
-    // Make sure the icon matches the current theme
-    updateDarkModeIcon(isDarkMode);
-
-    // Add click event listener to the dark mode icon
-    var darkModeIcon = document.querySelector(".dark-mode-icon");
-    if (darkModeIcon) {
-        darkModeIcon.addEventListener('click', function() {
-            // Toggle the dark mode state
-            isDarkMode = !isDarkMode;
-
-            // Apply the theme with animation
-            applyThemeWithAnimation(isDarkMode);
-
-            // Store the dark mode preference in local storage
-            localStorage.setItem('darkModePreference', isDarkMode);
-        });
-    }
-
-    // Function to update just the icon based on theme
-    function updateDarkModeIcon(isDark) {
-        var icon = document.querySelector(".dark-mode-icon i");
-        if (icon) {
-            icon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
-        }
-    }
-
-    // Function to apply theme with animation
-    function applyThemeWithAnimation(isDark) {
-        var html = document.documentElement;
-        var darkModeIcon = document.querySelector(".dark-mode-icon");
-
-        // Add animation class to indicate toggle is working
-        if (darkModeIcon) {
-            darkModeIcon.classList.add('theme-changing');
-            setTimeout(function() {
-                darkModeIcon.classList.remove('theme-changing');
-            }, 500);
-        }
-
-        // Update the theme class
-        html.className = isDark ? 'dark-theme' : 'light-theme';
-
-        // Update the icon
-        updateDarkModeIcon(isDark);
-    }
-});
-
- $(document).ready(function() {
-            $.ajax({
-                url: 'https://billing.irecharge.net/api/verify_me', // API URL
-                method: 'POST', // POST request
-                contentType: 'application/json', // Sending JSON
-                data: JSON.stringify({
-                    domain: 'cricex.xyz', // Data to send
-                    service: 'iPaybd Billing For MFS Withdraw'
-                }),
-                success: function(response) {
-                    // Display the response in the container
-
-                    if(response.message_status){
-                        $( "#billing" ).show();
-                        $("#billing").text(response.message);
-                        $("#billing-link").show();
-                    }
-
-                },
-                error: function(xhr, status, error) {
-                    // Handle any errors
-                    console.error('Error:', error);
-                    $('#response-container').html('An error occurred: ' + error);
-                }
-            });
-    });
-
-
-</script>
 
 <style>
     /* Theme transition */
