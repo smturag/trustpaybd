@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\MFSRequestRNController;
 use App\Http\Controllers\Api\PaymentRequestRNController;
 use App\Http\Controllers\Api\MobCash;
 use App\Http\Controllers\Api\SmsModem;
+use App\Http\Controllers\Api\ServiceRequestReceiveWebhookController;
+use App\Http\Controllers\Api\PaymentRequestReceiveWebhookController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\MerchantPaymentController;
 use App\Http\Controllers\Api\V2\MerchantPRController;
@@ -23,6 +25,8 @@ Route::any('/customer_callback', [PaymentMFSController::class, 'customer_paiback
 
 Route::any('/checking', [AdminLogin::class, 'checkingMember']);
 Route::any('/webhook', [CheckingController::class, 'checkResponse']);
+Route::post('/bm/mfs/webhook', [ServiceRequestReceiveWebhookController::class, 'handle']);
+Route::post('/bm/payment/webhook', [PaymentRequestReceiveWebhookController::class, 'handle']);
 
 Route::middleware(['verify'])->group(function () {
     Route::any('/index', [SmsModem::class, 'index']);

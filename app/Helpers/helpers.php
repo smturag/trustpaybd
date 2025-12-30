@@ -2144,7 +2144,7 @@ if (!function_exists('can')) {
     function can($permission)
     {
         $admin = Auth::guard('admin')->user();
-        
+
         if (!$admin) {
             return false;
         }
@@ -2160,7 +2160,7 @@ if (!function_exists('canAny')) {
     function canAny($permissions)
     {
         $admin = Auth::guard('admin')->user();
-        
+
         if (!$admin) {
             return false;
         }
@@ -2176,7 +2176,7 @@ if (!function_exists('canAll')) {
     function canAll($permissions)
     {
         $admin = Auth::guard('admin')->user();
-        
+
         if (!$admin) {
             return false;
         }

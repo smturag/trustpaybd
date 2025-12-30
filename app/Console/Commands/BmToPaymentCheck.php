@@ -67,10 +67,7 @@ class BmToPaymentCheck extends Command
         // Query to find matching payment requests and balance manager transactions
         $query = DB::table('payment_requests as pr')
             ->join('balance_managers as bm', 'pr.payment_method_trx', '=', 'bm.trxid')
-            ->where(function ($query) {
-                $query->where('bm.status', '!=', 66)
-                    ->orWhereNull('bm.status'); // ✅ include null status
-            })
+            ->whereIn('bm.status', [20, 22, 77])
             ->whereNotNull('pr.payment_method')
             ->whereNotNull('pr.payment_method_trx')
             ->where('pr.status', 0)

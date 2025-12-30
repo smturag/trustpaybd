@@ -13,34 +13,59 @@ class ApiToPaymentCheck extends Command
 
     public function handle()
     {
-        // Fetch payment requests using Eloquent
-        $requests = PaymentRequest::where('status', 0)
-            ->get();
+        // Fetch pending payment requests
+        $requests = PaymentRequest::where('status', 0)->whereNotNull('payment_method_trx')->get();
 
         foreach ($requests as $request) {
-            $checkTransactionResponse = checkTransaction($request->payment_method_trx);
+
+            $fromNumber = $request->balanceManager->mobile ?? $request->from_number ?? '-';
+
+            // ✅ Make sure trxId is not empty and trimmed
+            $trxId = trim((string) $request->payment_method_trx);
+
+            if ($trxId === '') {
+                Log::warning('Skipping PaymentRequest: empty trx id', [
+                    'payment_request_id' => $request->id,
+                    'reference'          => $request->reference ?? null,
+                ]);
+                continue;
+            }
+
+            Log::info('Checking transaction for request', [
+                'payment_request_id' => $request->id,
+                'trxId'              => $trxId,
+            ]);
+
+            $checkTransactionResponse = checkTransaction($trxId);
+
+            Log::info('checkTransaction response', [
+                'payment_request_id' => $request->id,
+                'response'           => $checkTransactionResponse,
+            ]);
 
             if ($checkTransactionResponse['status'] === 'success') {
 
+                $data = $checkTransactionResponse['data'];
 
-
-                if($checkTransactionResponse['data']['amount'] == (int) $request->amount  &&
-    strtolower($checkTransactionResponse['data']['method']) === strtolower($request->payment_method)){
-
-                    if(isset($checkTransactionResponse['data']['receiverPhone']) && $checkTransactionResponse['data']['receiverPhone'] != 'UNKNOWN' ){
-                            $request->sim_id = $checkTransactionResponse['data']['receiverPhone'];
+                // ✅ Make comparison a bit safer (API may return string)
+                if (
+                    (int) $data['amount'] === (int) $request->amount &&
+                    strtolower($data['method']) === strtolower($request->payment_method) &&
+                    strtolower($data['customType']) === strtolower($request->payment_type)
+                ) {
+                    if (isset($data['receiverPhone']) && $data['receiverPhone'] !== 'UNKNOWN') {
+                        $request->sim_id = $data['receiverPhone'];
                     }
 
-                    $request->accepted_by= "mfs_api";
-                    $request->status = 1;
-                    $request->from_number = $checkTransactionResponse['data']['senderPhone'];
+                    $request->accepted_by  = "mfs_api";
+                    $request->status       = 2;
+                    $request->from_number  = $data['senderPhone'];
+                    $request->updated_at   = now();
                     $request->save();
 
-                    paymentRequestApprovedBalanceHandler($request , 'id');
+                    paymentRequestApprovedBalanceHandler($request->id, 'id');
                     merchantWebHook($request->reference);
-
                 }
-
             }
         }
     }

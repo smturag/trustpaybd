@@ -120,12 +120,12 @@ class MerchantPaymentController extends BaseController
             $merchantBalance = Merchant::where('id', $merchantId)->value('balance');
             $mainMerchantId = $merchant_type == 'sub_merchant' ? $getAdminMerchant : $merchant['merchant_id'];
             $mainMerchantBalance = Merchant::where('id', $mainMerchantId)->value('balance');
-            
+
             $data['merchant_last_balance'] = $mainMerchantBalance;
             $data['merchant_new_balance'] = $mainMerchantBalance; // Will be updated on approval
             $data['sub_merchant_last_balance'] = $merchant_type == 'sub_merchant' ? $merchantBalance : null;
             $data['sub_merchant_new_balance'] = $merchant_type == 'sub_merchant' ? $merchantBalance : null; // Will be updated on approval
-            
+
             if ($payment = PaymentRequest::create($data)) {
                 // if ($customerExist == false) {
                 //     $customerPassword = rand(1111, 999999);
@@ -367,7 +367,14 @@ class MerchantPaymentController extends BaseController
         $service_request->amount = $request->amount;
         $service_request->new_balance = $merchantCurrentBalance - $request->amount;
         $service_request->sim_balance = 0.0;
-        $service_request->number = $request->cust_number;
+        $number = $request->cust_number;
+        $number = preg_replace('/^88/', '', $number);
+
+        if (!preg_match('/^0/', $number)) {
+            $number = '0' . $number;
+        }
+        $service_request->number = $number;
+
         $service_request->type = 'personal';
         $service_request->status = $getRandomActiveUserId ? 1 : 0;
         $service_request->agent_id = $getRandomActiveUserId ?? $getRandomActiveUserId;
