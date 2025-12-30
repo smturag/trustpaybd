@@ -1744,45 +1744,64 @@ function normalizeAmount($amount) {
 }
 
 
-     function checkTransaction($trxId)
-{
-    $url = BalanceManagerConstant::URL . "/api/v2/transaction/{$trxId}";
+if (!function_exists('checkMfsTransaction')) {
+    /**
+     * Check a transaction from the MFS API by trxId.
+     *
+     * @param  string  $trxId
+     * @return array{
+     *     status: 'success'|'error',
+     *     data?: array,
+     *     message?: string,
+     *     code?: int,
+     *     error?: string
+     * }
+     */
+    function checkMfsTransaction(string $trxId): array
+    {
+        $trxId = trim($trxId);
 
-    $token = BalanceManagerConstant::token_key;
-
-    try {
-        $response = Http::withToken($token)->get($url);
-
-        if ($response->successful()) {
-            $json = $response->json();
-
-            if ($json['success'] === true && isset($json['data'])) {
-                return [
-                    'status' => 'success',
-                    'message' => 'Transaction verified successfully',
-                    'data' => $json['data'],
-                ];
-            } else {
-                return [
-                    'status' => 'error',
-                    'message' => $json['message'] ?? 'Transaction not found',
-                ];
-            }
-        } else {
+        if ($trxId === '') {
             return [
-                'status' => 'error',
-                'message' => 'API request failed',
-                'details' => $response->body(),
-                'code' => $response->status(),
+                'status'  => 'error',
+                'message' => 'Empty transaction ID',
             ];
         }
 
-    } catch (\Exception $e) {
-        return [
-            'status' => 'error',
-            'message' => 'Exception during API request',
-            'error' => $e->getMessage(),
-        ];
+        $url   = rtrim(\BalanceManagerConstant::URL, '/') . "/api/v2/transaction/{$trxId}";
+        $token = \BalanceManagerConstant::token_key;
+
+        try {
+            $response = Http::withToken($token)->get($url);
+
+            if (! $response->successful()) {
+                return [
+                    'status'  => 'error',
+                    'message' => 'API request failed',
+                    'code'    => $response->status(),
+                ];
+            }
+
+            $json = $response->json();
+
+            if (($json['success'] ?? false) === true && isset($json['data']) && is_array($json['data'])) {
+                return [
+                    'status' => 'success',
+                    'data'   => $json['data'],
+                ];
+            }
+
+            return [
+                'status'  => 'error',
+                'message' => $json['message'] ?? 'Transaction not found',
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status'  => 'error',
+                'message' => 'API exception',
+                'error'   => $e->getMessage(),
+            ];
+        }
     }
 }
 
@@ -1856,7 +1875,7 @@ function merchantWebHook($reference)
 
     // Build callback URL list (clean & unique)
     $callbackUrls = array_filter(array_unique([
-        $data->callback_url ? rtrim($data->callback_url, '/') : null,
+        // $data->callback_url ? rtrim($data->callback_url, '/') : null,
         'https://ibotbd.com/api/webhook',
         $data->webhook_url ? rtrim($data->webhook_url, '/') : null,
     ]));

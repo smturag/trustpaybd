@@ -123,10 +123,15 @@
                                     <label for="type">{{ translate('type') }}</label>
                                     <select class="form-control" name="type" id="type">
                                         <option value="">--Type--</option>
-                                        <option value="cashout">Cash Out</option>
-                                        <option value="cashin">Cash In</option>
-                                        <option value="b2b">B2b Transfer</option>
-                                        <option value="RC">B2b Receive In</option>
+                                        <option value="cashout" @selected(request('type') === 'cashout')>Cash Out</option>
+                                        <option value="cashin" @selected(request('type') === 'cashin')>Cash In</option>
+                                        <option value="b2b" @selected(request('type') === 'b2b')>B2b Transfer</option>
+                                        <option value="RC" @selected(request('type') === 'RC')>B2b Receive In</option>
+                                        @isset($types)
+                                            @foreach($types as $typeOption)
+                                                <option value="{{ $typeOption }}" @selected(request('type') === $typeOption)>{{ ucfirst($typeOption) }}</option>
+                                            @endforeach
+                                        @endisset
                                     </select>
                                 </div>
                             </div>

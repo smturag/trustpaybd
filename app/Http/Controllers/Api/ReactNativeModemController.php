@@ -31,8 +31,10 @@ class ReactNativeModemController extends Controller
         $getoperator = $request->operator;
         $msg = $request->smsbody;
         $msgNormalized = preg_replace('/\s+/', ' ', trim($msg));
+        // $sendcode = trim($request->sender);
+        // $sendcodeLower = strtolower($sendcode);
         $sendcode = trim($request->sender);
-        $sendcodeLower = strtolower($sendcode);
+        $sendcodeLower = $request->sender;
         $simid = $request->simid;
         $deviceid = $request->deviceid;
         $membercode = $request->membercode;
@@ -165,13 +167,13 @@ class ReactNativeModemController extends Controller
 
         /// balance manager full function start here
 
-        if (in_array($sendcodeLower, ['nagad', 'bkash', '16216', 'upay'], true)) {
+        if (in_array($sendcodeLower, ['NAGAD', 'bKash', '16216', 'upay'], true)) {
             $responseValue = explode(':', $msg);
 
             //Cash Out Received.Amount: Tk 2100.00Customer: 01672151119TxnID: 71NHMIC5Comm: Tk 8.61Balance: Tk 110060.8121/01/2023 18:30
             //Cash In Successful.Amount: Tk 3000.00 Customer: 01827147299 TxnID: 71R8DC4R Comm: Tk 12.30 Balance: Tk 10980.99 12/03/2023 22:06
 
-            if (str_contains($responseValue[0], 'Cash Out') && $sendcodeLower === 'nagad') {
+            if (str_contains($responseValue[0], 'Cash Out') && $sendcodeLower === 'NAGAD') {
                 $smsbodytype = 'ngcashout';
                 $baltype = 'plus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'Tk ', 'Customer')));
@@ -192,7 +194,7 @@ class ReactNativeModemController extends Controller
 
             // nagad cashin
 
-            if (str_contains($responseValue[0], 'Cash In') && $sendcodeLower === 'nagad') {
+            if (str_contains($responseValue[0], 'Cash In') && $sendcodeLower === 'NAGAD') {
                 $smsbodytype = 'ngcashin';
                 $baltype = 'minus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'Tk ', 'Customer')));
@@ -214,7 +216,7 @@ class ReactNativeModemController extends Controller
             // nagad B2B
             // B2B Transfer Successful. Amount: Tk 3000.00 Receiver: 01810030342 TxnID: 71R9VMKW Balance: Tk 43462.02 13/03/2023 17:30
 
-            if (str_contains($responseValue[0], 'B2B Transfer') && $sendcodeLower === 'nagad') {
+            if (str_contains($responseValue[0], 'B2B Transfer') && $sendcodeLower === 'NAGAD') {
                 $smsbodytype = 'ngB2BTR';
                 $baltype = 'minus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'Tk ', 'Receiver')));
@@ -236,7 +238,7 @@ class ReactNativeModemController extends Controller
             // nagad b2b receive
             //B2B Received. Amount: Tk 3000.00 Sender: 01810030342 TxnID: 71R9OL1C Balance: Tk 16202.72 13/03/2023 16:05
 
-            if (str_contains($responseValue[0], 'B2B Received') && $sendcodeLower === 'nagad') {
+            if (str_contains($responseValue[0], 'B2B Received') && $sendcodeLower === 'NAGAD') {
                 $smsbodytype = 'ngB2BRC';
                 $baltype = 'plus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'Tk ', 'Sender')));
@@ -259,7 +261,7 @@ class ReactNativeModemController extends Controller
 
             //Congratulations! You have received Cashback Tk 1.00. Balance Tk 91,950.74. TrxID AC889WE2G0 at 08/03/2023 10:50
 
-            if (str_contains($responseValue[0], 'Cash Out') && $sendcodeLower === 'bkash') {
+            if (str_contains($responseValue[0], 'Cash Out') && $sendcodeLower === 'bKash') {
                 $smsbodytype = 'bkcashout';
                 $baltype = 'plus';
                 $amount = floatval(value: str_replace(',', '', getStringBetween($msg, 'Tk ', ' from')));
@@ -288,7 +290,7 @@ class ReactNativeModemController extends Controller
             }
 
             //Cash In Tk 2,000.00 to 01856600204 successful. Fee Tk 0.00. Balance Tk 2,851.16. TrxID AC829VTZTE at 08/03/2023 10:37
-            if (str_contains($responseValue[0], 'Cash In') && $sendcodeLower === 'bkash') {
+            if (str_contains($responseValue[0], 'Cash In') && $sendcodeLower === 'bKash') {
                 $smsbodytype = 'bkcashin';
                 $baltype = 'minus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'Cash In Tk ', ' to')));
@@ -326,7 +328,7 @@ class ReactNativeModemController extends Controller
 
             // B2B Transfer Tk 2,000.00 to 01704172631 successful. Fee Tk 0.00. Balance Tk 7,521.24. TrxID ACD7FJDL8B at 13/03/2023 16:48
 
-            if (str_contains($responseValue[0], 'B2B Transfer') && $sendcodeLower === 'bkash') {
+            if (str_contains($responseValue[0], 'B2B Transfer') && $sendcodeLower === 'bKash') {
                 $smsbodytype = 'bkB2B';
                 $baltype = 'minus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'Transfer Tk ', ' to')));
@@ -346,7 +348,7 @@ class ReactNativeModemController extends Controller
 
             // You have received Tk 2,000.00 from 01704172631. Fee Tk 0.00. Balance Tk 2,201.51. TrxID ACA8CBMVZ2 at 10/03/2023 16:36
 
-            if (str_contains($responseValue[0], 'received') && $sendcodeLower === 'bkash' && !str_contains($responseValue[0], 'payment')) {
+            if (str_contains($responseValue[0], 'received') && $sendcodeLower === 'bKash' && !str_contains($responseValue[0], 'payment')) {
                 $smsbodytype = 'bkRC';
                 $baltype = 'plus';
                 $amount = floatval(str_replace(',', '', getStringBetween($msg, 'received Tk ', ' from')));
@@ -570,7 +572,7 @@ class ReactNativeModemController extends Controller
             You have received payment Tk 55.00 from 01929952387. Fee Tk 0.00. Balance Tk 55.59.TrxID CJKOGO2GAQ at 20/10/2025 18:00
             */
 
-            if (str_contains($msg, 'received payment') && $sendcodeLower === 'bkash') {
+            if (str_contains($msg, 'received payment') && $sendcodeLower === 'bKash') {
                 $smsbodytype = 'bkPayment';
                 $baltype = 'plus';
                 $comm = 0;
@@ -593,7 +595,7 @@ class ReactNativeModemController extends Controller
             Payment Received. Amount: Tk 50.00 Customer: 01929952387 TxnID: 74HΝΕΚΟ8 Balance: Tk 247.78 20/10/2025 17:58
             */
 
-            if (str_contains($msgNormalized, 'Payment Received') && $sendcodeLower === 'nagad') {
+            if (str_contains($msgNormalized, 'Payment Received') && $sendcodeLower === 'NAGAD') {
                 $smsbodytype = 'ngPayment';
                 $baltype = 'plus';
                 $comm = 0;
@@ -616,7 +618,7 @@ class ReactNativeModemController extends Controller
 
 
 
-            if (str_contains($msgNormalized, 'Money Received') && $sendcodeLower === 'nagad') {
+            if (str_contains($msgNormalized, 'Money Received') && $sendcodeLower === 'NAGAD') {
                 $smsbodytype = 'ngRC';
                 $baltype = 'plus';
                 $comm = 0;

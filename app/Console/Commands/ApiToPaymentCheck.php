@@ -8,65 +8,105 @@ use Illuminate\Support\Facades\Log;
 
 class ApiToPaymentCheck extends Command
 {
+    /**
+     * Command name.
+     *
+     * Run: php artisan payments:sync-mfsApiToPaymentCheck
+     */
     protected $signature = 'app:api-to-payment-check';
-    protected $description = 'Checks and updates payment requests based on balance manager transactions.';
 
-    public function handle()
+    /**
+     * Description.
+     */
+    protected $description = 'Approve pending payment requests when amount, method and trxId match MFS API transaction.';
+
+    public function handle(): int
     {
-        // Fetch pending payment requests
-        $requests = PaymentRequest::where('status', 0)->whereNotNull('payment_method_trx')->get();
+        // Get all pending requests that have a trx ID
+        $requests = PaymentRequest::where('status', 0)
+            ->whereNotNull('payment_method_trx')
+            ->get();
+
+        if ($requests->isEmpty()) {
+            $this->info('No pending payment requests found.');
+            return self::SUCCESS;
+        }
 
         foreach ($requests as $request) {
+            try {
+                $trxId = trim((string) $request->payment_method_trx);
 
-            $fromNumber = $request->balanceManager->mobile ?? $request->from_number ?? '-';
+                if ($trxId === '') {
+                    continue;
+                }
 
-            // ✅ Make sure trxId is not empty and trimmed
-            $trxId = trim((string) $request->payment_method_trx);
+                // Call API
+                $res = checkMfsTransaction($trxId);
 
-            if ($trxId === '') {
-                Log::warning('Skipping PaymentRequest: empty trx id', [
-                    'payment_request_id' => $request->id,
-                    'reference'          => $request->reference ?? null,
-                ]);
-                continue;
-            }
+                if (($res['status'] ?? null) !== 'success') {
+                    // Could log $res['message'] if needed
+                    continue;
+                }
 
-            Log::info('Checking transaction for request', [
-                'payment_request_id' => $request->id,
-                'trxId'              => $trxId,
-            ]);
+                $transaction = $res['data'] ?? null;
+                if (!is_array($transaction)) {
+                    continue;
+                }
 
-            $checkTransactionResponse = checkTransaction($trxId);
+                // ---- SIMPLE MATCH LOGIC ----
+                $amountMatches = (int) ($transaction['amount'] ?? 0) === (int) $request->amount;
 
-            Log::info('checkTransaction response', [
-                'payment_request_id' => $request->id,
-                'response'           => $checkTransactionResponse,
-            ]);
+                $methodMatches = isset($transaction['method'])
+                    && strcasecmp($transaction['method'], (string) $request->payment_method) === 0;
 
-            if ($checkTransactionResponse['status'] === 'success') {
+                $trxMatches = isset($transaction['trxId'])
+                    && strcasecmp($transaction['trxId'], (string) $request->payment_method_trx) === 0;
 
-                $data = $checkTransactionResponse['data'];
+                // Only approve when method, amount & trx all match
+                if (!($amountMatches && $methodMatches && $trxMatches)) {
+                    continue;
+                }
 
-                // ✅ Make comparison a bit safer (API may return string)
-                if (
-                    (int) $data['amount'] === (int) $request->amount &&
-                    strtolower($data['method']) === strtolower($request->payment_method) &&
-                    strtolower($data['customType']) === strtolower($request->payment_type)
-                ) {
-                    if (isset($data['receiverPhone']) && $data['receiverPhone'] !== 'UNKNOWN') {
-                        $request->sim_id = $data['receiverPhone'];
+                // ---- UPDATE PAYMENT REQUEST ----
+                $request->status       = 2; // Approved
+                $request->accepted_by  = 'mfs_api';
+                $request->payment_type = $transaction['customType'] ?? $request->payment_type;
+
+                // Optional: keep these like before (good for traceability)
+                $request->from_number = $transaction['senderPhone'] ?? $request->from_number;
+
+                if (!empty($transaction['receiverPhone']) && $transaction['receiverPhone'] !== 'UNKNOWN') {
+                    $request->sim_id = $transaction['receiverPhone'];
+                }
+
+                if ($request->save()) {
+                    Log::info('Payment request approved via MFS API', [
+                        'payment_request_id' => $request->id,
+                        'trxId'              => $trxId,
+                    ]);
+
+                    // If you have these helper functions, keep them:
+                    if (function_exists('paymentRequestApprovedBalanceHandler')) {
+                        paymentRequestApprovedBalanceHandler($request->id, 'id');
                     }
 
-                    $request->accepted_by  = "mfs_api";
-                    $request->status       = 2;
-                    $request->from_number  = $data['senderPhone'];
-                    $request->updated_at   = now();
-                    $request->save();
-
-                    paymentRequestApprovedBalanceHandler($request->id, 'id');
-                    merchantWebHook($request->reference);
+                    if (function_exists('merchantWebHook')) {
+                        merchantWebHook($request->reference);
+                    }
                 }
+
+            } catch (\Throwable $e) {
+                Log::error('Error in payments:sync-mfs command', [
+                    'payment_request_id' => $request->id ?? null,
+                    'error'              => $e->getMessage(),
+                ]);
+
+                // Skip this one and continue
+                continue;
             }
         }
+
+        $this->info('payments:sync-mfs completed.');
+        return self::SUCCESS;
     }
 }

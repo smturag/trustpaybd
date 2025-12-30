@@ -31,6 +31,7 @@ class AdminBm extends Controller
         $simNumber = $request->get('simNumber');
 
         $sim = BalanceManager::select('sim')->distinct()->get();
+        $types = BalanceManager::select('type')->whereNotNull('type')->distinct()->pluck('type');
 
         $qrdata = BalanceManager::orderBy($sort_by, $sort_type);
 
@@ -107,20 +108,26 @@ class AdminBm extends Controller
             $qrdata->where('trxid', $request->trxid);
         }
 
-        if (!empty($request->type)) {
-            if ($request->type == "cashout") {
+        $typeFilter = $request->get('type');
+        if (!empty($typeFilter)) {
+            if ($typeFilter == "cashout") {
                 $qrdata->whereIn('type', ['ngcashout', 'bkcashout', 'rccashout']);
             }
 
-            if ($request->type == "cashin") {
+            if ($typeFilter == "cashin") {
                 $qrdata->whereIn('type', ['ngcashin', 'bkcashin', 'rccashin']);
             }
 
-            if ($request->type == "b2b") {
+            if ($typeFilter == "b2b") {
                 $qrdata->whereIn('type', ['bkB2B', 'ngB2B', 'rcB2B']);
             }
-            if ($request->type == "RC") {
+            if ($typeFilter == "RC") {
                 $qrdata->whereIn('type', ['bkRC', 'ngB2BRC', 'rcB2BRC']);
+            }
+
+            // Fallback to exact type match for any other type values coming from DB.
+            if (!in_array($typeFilter, ['cashout', 'cashin', 'b2b', 'RC'])) {
+                $qrdata->where('type', $typeFilter);
             }
         }
 
@@ -132,7 +139,7 @@ class AdminBm extends Controller
             return view('admin.bm.balance-manager-content', compact('data'));
         }
 
-        return view('admin.bm.balance-manager', compact('data', 'sim'));
+        return view('admin.bm.balance-manager', compact('data', 'sim', 'types'));
     }
 
 
