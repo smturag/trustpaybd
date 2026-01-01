@@ -2203,3 +2203,65 @@ if (!function_exists('canAll')) {
         return $admin->hasAllPermissions($permissions);
     }
 }
+
+function checkMfsTransaction(string $trxId): array
+    {
+        $trxId = trim($trxId);
+
+        if ($trxId === '') {
+            return [
+                'status'  => 'error',
+                'message' => 'Empty transaction ID',
+                'data'    => null,
+            ];
+        }
+
+        try {
+            $url = rtrim(BalanceManagerConstant::URL, '/')
+                 . "/api/v2/transaction/{$trxId}";
+
+            $response = Http::timeout(10)
+                ->acceptJson()
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . BalanceManagerConstant::token_key,
+                ])
+                ->get($url);
+
+            if (! $response->successful()) {
+                return [
+                    'status'  => 'error',
+                    'message' => "HTTP {$response->status()}",
+                    'data'    => null,
+                ];
+            }
+
+            $json = $response->json();
+
+            if (!($json['success'] ?? false)) {
+                return [
+                    'status'  => 'error',
+                    'message' => $json['message'] ?? 'API returned success=false',
+                    'data'    => $json['data'] ?? null,
+                ];
+            }
+
+            return [
+                'status'  => 'success',
+                'message' => null,
+                'data'    => $json['data'] ?? null,
+            ];
+
+        } catch (\Throwable $e) {
+
+            Log::error('checkMfsTransaction failed', [
+                'trxId' => $trxId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+                'data'    => null,
+            ];
+        }
+    }

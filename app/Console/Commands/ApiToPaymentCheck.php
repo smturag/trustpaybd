@@ -11,7 +11,7 @@ class ApiToPaymentCheck extends Command
     /**
      * Command name.
      *
-     * Run: php artisan payments:sync-mfsApiToPaymentCheck
+     * Run: php artisan app:api-to-payment-check
      */
     protected $signature = 'app:api-to-payment-check';
 
@@ -32,6 +32,8 @@ class ApiToPaymentCheck extends Command
             return self::SUCCESS;
         }
 
+        Log::info($requests);
+
         foreach ($requests as $request) {
             try {
                 $trxId = trim((string) $request->payment_method_trx);
@@ -40,11 +42,16 @@ class ApiToPaymentCheck extends Command
                     continue;
                 }
 
-                // Call API
+                // Call API (using your helper)
                 $res = checkMfsTransaction($trxId);
 
                 if (($res['status'] ?? null) !== 'success') {
-                    // Could log $res['message'] if needed
+                    // Optional debug logging
+                    Log::info('MFS API returned non-success for payment request', [
+                        'payment_request_id' => $request->id,
+                        'trxId'              => $trxId,
+                        'message'            => $res['message'] ?? null,
+                    ]);
                     continue;
                 }
 
@@ -72,7 +79,7 @@ class ApiToPaymentCheck extends Command
                 $request->accepted_by  = 'mfs_api';
                 $request->payment_type = $transaction['customType'] ?? $request->payment_type;
 
-                // Optional: keep these like before (good for traceability)
+                // Keep for traceability
                 $request->from_number = $transaction['senderPhone'] ?? $request->from_number;
 
                 if (!empty($transaction['receiverPhone']) && $transaction['receiverPhone'] !== 'UNKNOWN') {
@@ -85,7 +92,6 @@ class ApiToPaymentCheck extends Command
                         'trxId'              => $trxId,
                     ]);
 
-                    // If you have these helper functions, keep them:
                     if (function_exists('paymentRequestApprovedBalanceHandler')) {
                         paymentRequestApprovedBalanceHandler($request->id, 'id');
                     }
@@ -96,17 +102,16 @@ class ApiToPaymentCheck extends Command
                 }
 
             } catch (\Throwable $e) {
-                Log::error('Error in payments:sync-mfs command', [
+                Log::error('Error in app:api-to-payment-check command', [
                     'payment_request_id' => $request->id ?? null,
                     'error'              => $e->getMessage(),
                 ]);
 
-                // Skip this one and continue
                 continue;
             }
         }
 
-        $this->info('payments:sync-mfs completed.');
+        $this->info('app:api-to-payment-check completed.');
         return self::SUCCESS;
     }
 }

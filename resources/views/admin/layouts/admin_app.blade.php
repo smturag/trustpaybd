@@ -292,16 +292,6 @@
 <!-- Dark mode is now applied in the head section to prevent flash of unstyled content -->
 <script src="{{ asset('static/backend/js/app.js') }}"></script>
 <script>
-
-$("form").submit(function(){
-$("button[type=submit]").attr("disabled", "disabled");
-$("button[type=submit]").empty().html("Please wait...");
-});
-</script>
-
-
-
-    <script>
         function onlyNumbers(evt) {
             var e = event || evt; // for trans-browser compatibility
             var charCode = e.which || e.keyCode;
@@ -325,9 +315,10 @@ $("button[type=submit]").empty().html("Please wait...");
             }
         }
 
-        $("form").submit(function () {
-            $("button[type=submit]").attr("disabled", "disabled");
-            $("button[type=submit]").empty().html("Please wait...");
+        // Prevent double-submit on regular forms; AJAX filter forms can opt-out with .skip-submit-guard
+        $(document).on('submit', 'form:not(.skip-submit-guard)', function () {
+            const $buttons = $(this).find('button[type=submit]');
+            $buttons.prop('disabled', true).text('Please wait...');
         });
 
         function checkallbox(iobj) {

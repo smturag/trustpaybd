@@ -271,57 +271,45 @@
 
                         <div class="grid grid-cols-4 gap-1.5">
 
-                        
-                         @if ($permission->v1_manual_gateway)
-                            @foreach (mfsList() as $item)
-                                        @php
-                                            $method = strtolower($item['deposit_method']);
+                        @if ($permission->v1_manual_gateway)
+                            @foreach ($combinedMethods ?? [] as $item)
+                                @php
+                                    $method = strtolower($item['deposit_method']);
+                                    $paymentType = strtoupper($item['type'] ?? 'P2A');
 
-                                            // Set image path dynamically
-                                            $imagePath = match ($method) {
-                                                'bkash' => 'payments/bkash.png',
-                                                'nagad' => 'payments/nagad.png',
-                                                'rocket' => 'payments/rocket.png',
-                                                'upay' => 'payments/upay.png',
-                                                default => 'payments/default.png',
-                                            };
+                                    $imagePath = match ($method) {
+                                        'bkash' => 'payments/bkash.png',
+                                        'nagad' => 'payments/nagad.png',
+                                        'rocket' => 'payments/rocket.png',
+                                        'upay' => 'payments/upay.png',
+                                        default => 'payments/default.png',
+                                    };
 
-                                            // Determine payment type & label
-                                            if ($item['action'] === 'automatic') {
-                                                $paymentType = 'P2C';
-                                                $label = 'Payment';
-                                            } elseif ($item['action'] === 'peer') {
-                                                $paymentType = 'P2P';
-                                                $label = 'Send Money';
-                                            } else {
-                                                $paymentType = 'P2A';
-                                                $label = 'Cash Out';
-                                            }
-                                        @endphp
+                                    $label = $paymentType === 'P2P' ? 'Send Money' : ($paymentType === 'P2C' ? 'Payment' : 'Cash Out');
 
-                                        {{-- ✅ Show based on permission --}}
-                                        @if (
-                                            ($paymentType == 'P2A' && $permission->v1_p2a) ||
-                                            ($paymentType == 'P2C' && $permission->v1_p2c) ||
-                                            ($paymentType == 'P2P' && $permission->v1_p2p)
-                                        )
-                                            <a href="{{ url("/checkout/payment/$payment_request->request_id/{$item['deposit_method']}/{$item['deposit_number']}/$paymentType") }}"
-                                            class="payment-method-card bg-white rounded p-1.5 border border-gray-200 hover:border-blue-400 transition-all duration-300 group">
-                                                <div class="flex flex-col items-center space-y-0.5">
-                                                    <div
-                                                        class="w-16 h-12 flex items-center justify-center bg-gray-50 rounded group-hover:bg-blue-50 transition-colors duration-300">
-                                                        <img src="{{ asset($imagePath) }}" class="w-14 h-10 object-contain"
-                                                            alt="{{ ucfirst($item['deposit_method']) }}" />
-                                                    </div>
-                                                    <span
-                                                        class="text-xs font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-300 text-center leading-tight">
-                                                        {{ ucfirst($item['deposit_method']) }} <br> {{ $label }}
-                                                    </span>
-                                                </div>
-                                            </a>
-                                        @endif
-                                    @endforeach
-                                    @endif
+                                    $hasPermission = ($paymentType == 'P2A' && $permission->v1_p2a) ||
+                                        ($paymentType == 'P2C' && $permission->v1_p2c) ||
+                                        ($paymentType == 'P2P' && $permission->v1_p2p);
+                                @endphp
+
+                                @if ($hasPermission)
+                                    <a href="{{ url("/checkout/payment/$payment_request->request_id/{$method}/{$item['deposit_number']}/{$paymentType}") }}"
+                                        class="payment-method-card bg-white rounded p-1.5 border border-gray-200 hover:border-blue-400 transition-all duration-300 group">
+                                        <div class="flex flex-col items-center space-y-0.5">
+                                            <div
+                                                class="w-16 h-12 flex items-center justify-center bg-gray-50 rounded group-hover:bg-blue-50 transition-colors duration-300">
+                                                <img src="{{ asset($imagePath) }}" class="w-14 h-10 object-contain"
+                                                    alt="{{ ucfirst($method) }}" />
+                                            </div>
+                                            <span
+                                                class="text-xs font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-300 text-center leading-tight">
+                                                {{ ucfirst($method) }} <br> {{ $label }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                @endif
+                            @endforeach
+                        @endif
 
 
                             <!-- API Payment Methods -->

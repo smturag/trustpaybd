@@ -41,8 +41,7 @@
                 </h3>
             </div>
             <div class="p-6">
-                <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <form id="filter-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 skip-submit-guard">
                     
                     <!-- Show Entries -->
                     <div>
@@ -147,7 +146,6 @@
                             Search
                         </button>
                     </div>
-                </form>
                 </form>
             </div>
         </div>

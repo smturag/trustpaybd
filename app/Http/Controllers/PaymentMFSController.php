@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class PaymentMFSController extends Controller
 {
@@ -63,12 +64,65 @@ class PaymentMFSController extends Controller
             $paymentMethod->mfs = $paymentMethod->mfs_operator()->first();
         }
 
+        // Fetch balance manager available methods for display on the checkout page
+        $availableMethods = [];
+        try {
+            $response = Http::withToken(BalanceManagerConstant::token_key)
+                ->get(BalanceManagerConstant::URL . '/api/available-methods');
+
+            if ($response->successful()) {
+                $availableMethods = collect($response->json() ?? [])
+                    ->filter(function ($item) {
+                        return ($item['activeStatus'] ?? false) === true && !empty($item['phone']);
+                    })
+                    ->unique(function ($item) {
+                        return strtolower($item['type'] ?? '') . '|' . strtoupper($item['customType'] ?? '');
+                    })
+                    ->values()
+                    ->all();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Unable to fetch available methods from Balance Manager', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+
         //return $paymentMethods;
+
+        // Merge Balance Manager methods with modem/database methods and dedupe by operator+type
+        $bmCollection = collect($availableMethods ?? [])->map(function ($item) {
+            $txnType = strtoupper($item['customType'] ?? 'P2A');
+            return [
+                'deposit_method' => strtolower($item['type'] ?? ''),
+                'deposit_number' => $item['phone'] ?? null,
+                'type' => $txnType,
+                'action' => $txnType === 'P2C' ? 'automatic' : ($txnType === 'P2P' ? 'peer' : null),
+                'source' => 'bm',
+            ];
+        });
+
+        $modemCollection = collect(mfsList())->map(function ($item) {
+            $item['source'] = 'modem';
+            return $item;
+        });
+
+        $combinedMethods = $bmCollection
+            ->concat($modemCollection)
+            ->filter(function ($item) {
+                return !empty($item['deposit_method']) && !empty($item['deposit_number']) && !empty($item['type']);
+            })
+            ->unique(function ($item) {
+                return strtolower($item['deposit_method'] ?? '') . '|' . strtoupper($item['type'] ?? '');
+            })
+            ->shuffle()
+            ->values();
 
         $data = [
             'paymentMethods' => $paymentMethods,
             'payment_request' => $payment_request,
             'permission' => $merchant_v1_permission,
+            'availableMethods' => $availableMethods,
+            'combinedMethods' => $combinedMethods,
         ];
         return view('merchant.payments.select-method')->with($data);
     }

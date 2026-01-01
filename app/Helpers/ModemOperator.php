@@ -206,11 +206,22 @@ function mfsList($access = null)
             if ($useStatic && $staticMap->has($method)) {
                 return $staticMap->get($method);
             } elseif ($dynamicMap->has($method)) {
+                $dynamicItem = $dynamicMap[$method];
+                $transactionType = strtoupper($dynamicItem['customType'] ?? 'P2A');
+
+                $action = null;
+                if ($transactionType === 'P2C') {
+                    $action = 'automatic';
+                } elseif ($transactionType === 'P2P') {
+                    $action = 'peer';
+                }
+
                 return [
-                    'deposit_method' => strtolower($dynamicMap[$method]['type']),
-                    'deposit_number' => $dynamicMap[$method]['phone'],
-                    'icon' => 'https://' . $_SERVER['HTTP_HOST'] . '/payments/' . strtolower($dynamicMap[$method]['type']) . '.png',
-                    'type'           => 'P2A',
+                    'deposit_method' => strtolower($dynamicItem['type']),
+                    'deposit_number' => $dynamicItem['phone'],
+                    'icon' => 'https://' . $_SERVER['HTTP_HOST'] . '/payments/' . strtolower($dynamicItem['type']) . '.png',
+                    'type'           => $transactionType,
+                    'action'         => $action,
                 ];
             } elseif ($staticMap->has($method)) {
                 return $staticMap->get($method);
@@ -223,7 +234,12 @@ function mfsList($access = null)
 
     // If manual → no P2C or P2P data
     if ($access === 'manual') {
-        return $finalList;
+        return $finalList
+            ->unique(function ($item) {
+                return strtolower($item['deposit_method'] ?? '') . '|' . strtoupper($item['type'] ?? '');
+            })
+            ->shuffle()
+            ->values();
     }
 
     // Otherwise (automatic mode)
@@ -232,7 +248,9 @@ function mfsList($access = null)
 
     // Tag each category with 'action' property
     $finalList = $finalList->map(function ($item) {
-        $item['action'] = null; // P2A and dynamic (manual)
+        if (!array_key_exists('action', $item)) {
+            $item['action'] = null; // P2A and dynamic (manual)
+        }
         return $item;
     });
 
@@ -249,7 +267,14 @@ function mfsList($access = null)
     });
 
     // Merge all lists
-    return $finalList->concat($p2cList)->concat($p2pList)->values();
+    return $finalList
+        ->concat($p2cList)
+        ->concat($p2pList)
+        ->unique(function ($item) {
+            return strtolower($item['deposit_method'] ?? '') . '|' . strtoupper($item['type'] ?? '');
+        })
+        ->shuffle()
+        ->values();
 }
 
 
