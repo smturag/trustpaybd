@@ -670,7 +670,13 @@ class MerchantPaymentRequestController extends Controller
         }
 
         if ($request->filled('trxid')) {
+            // Transaction ID (API id)
             $query_data->where('get_trxid', $request->trxid);
+        }
+
+        if ($request->filled('withdraw_id')) {
+            // Withdraw ID (internal trxid)
+            $query_data->where('trxid', 'LIKE', '%' . $request->withdraw_id . '%');
         }
 
         if ($request->filled('status')) {

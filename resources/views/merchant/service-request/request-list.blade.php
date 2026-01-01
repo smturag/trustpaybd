@@ -60,6 +60,13 @@
 
                         <div class="col-md-2">
                             <div class="form-group">
+                                <label>Withdraw ID</label>
+                                <input type="text" class="form-control" name="withdraw_id" value="{{ request('withdraw_id') }}">
+                            </div>
+                        </div>
+
+                        <div class="col-md-2">
+                            <div class="form-group">
                                 <label>{{ translate('mfs') }}</label>
                                 <select class="form-control" name="mfs">
                                     <option value="">--Select--</option>
@@ -186,6 +193,42 @@ $(document).ready(function() {
         var baseUrl = "{{ route('merchant.service-request.export') }}";
         var url = baseUrl + (formData ? ('?' + formData + '&') : '?') + 'format=' + format;
         window.location.href = url;
+    });
+
+    // Copy Withdraw ID (delegated for AJAX content)
+    $(document).on('click', '.copy-withdraw-id', function () {
+        var trxId = $(this).data('id') || '';
+        var $el = $(this);
+        if (!trxId) {
+            alert('Withdraw ID not available to copy.');
+            return;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(trxId).then(function () {
+                $el.text('Copied: ' + trxId);
+                setTimeout(function () {
+                    $el.text('Withdraw ID: ' + trxId);
+                }, 1200);
+            }).catch(function () {
+                alert('Copy failed. Please try again.');
+            });
+        } else {
+            var temp = document.createElement('input');
+            temp.value = trxId;
+            document.body.appendChild(temp);
+            temp.select();
+            try {
+                document.execCommand('copy');
+                $el.text('Copied: ' + trxId);
+                setTimeout(function () {
+                    $el.text('Withdraw ID: ' + trxId);
+                }, 1200);
+            } catch (e) {
+                alert('Copy failed. Please try again.');
+            }
+            document.body.removeChild(temp);
+        }
     });
 });
 </script>

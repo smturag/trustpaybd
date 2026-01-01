@@ -47,7 +47,12 @@
                 <td class="text-center">{{ ++$key }}</td>
                 <td class="text-center">{{ $row->mfs }} <br> {{ $row->sim_number }} <br> <small class="text-muted">{{ $row->number }}</small> </td>
 
-                <td class="text-center">{{ $row->amount }}</td>
+                <td class="text-center">
+                    {{ $row->amount }}<br>
+                    <small class="text-primary copy-withdraw-id d-inline-block mt-1" data-id="{{ $row->trxid ?? '' }}" style="cursor: pointer;">
+                        {{ $row->trxid ? 'Withdraw ID: ' . $row->trxid : 'Withdraw ID: N/A' }}
+                    </small>
+                </td>
                 @if (auth('merchant')->user()->merchant_type == 'general')
                     <td class="text-center">
                         <span class="badge bg-danger">{{ number_format($row->merchant_fee, 2) }}</span> /
