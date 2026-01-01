@@ -83,6 +83,10 @@ class ReportsController extends Controller
             $qrdata->where('trxid', $request->get('response_trxid'));
         }
 
+        if (!empty($request->get('withdraw_id'))) {
+            $qrdata->where('trxid', 'LIKE', '%' . $request->get('withdraw_id') . '%');
+        }
+
         if (!empty($request->sim_number)) {
             $qrdata->where('sim_number', $request->sim_number);
         }

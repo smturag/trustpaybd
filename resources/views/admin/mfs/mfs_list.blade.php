@@ -190,6 +190,12 @@
                             <input type="text" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all" name="trxid" id="trxid" placeholder="Enter TRX ID">
                         </div>
 
+                        <!-- Withdraw ID -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Withdraw ID</label>
+                            <input type="text" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all" name="withdraw_id" id="withdraw_id" placeholder="Enter Withdraw ID">
+                        </div>
+
                         <!-- Response TRX ID -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Response TRX ID</label>
@@ -298,6 +304,41 @@
 @push('js')
     <script type="text/javascript">
         $(document).ready(function() {
+            // Copy Withdraw ID (delegated)
+            $(document).on('click', '.copy-withdraw-id', function () {
+                var trxId = $(this).data('id') || '';
+                var $el = $(this);
+                if (!trxId) {
+                    alert('Withdraw ID not available to copy.');
+                    return;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(trxId).then(function () {
+                        $el.text('Copied: ' + trxId);
+                        setTimeout(function () {
+                            $el.text('Withdraw ID: ' + trxId);
+                        }, 1200);
+                    }).catch(function () {
+                        alert('Copy failed. Please try again.');
+                    });
+                } else {
+                    var temp = document.createElement('input');
+                    temp.value = trxId;
+                    document.body.appendChild(temp);
+                    temp.select();
+                    try {
+                        document.execCommand('copy');
+                        $el.text('Copied: ' + trxId);
+                        setTimeout(function () {
+                            $el.text('Withdraw ID: ' + trxId);
+                        }, 1200);
+                    } catch (e) {
+                        alert('Copy failed. Please try again.');
+                    }
+                    document.body.removeChild(temp);
+                }
+            });
 
             $(document).on('click', '.openPopup', function(e) {
                 e.preventDefault();

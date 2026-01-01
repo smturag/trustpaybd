@@ -92,7 +92,10 @@
                     <span class="badge bg-success">{{ money($row->new_balance) }}</span>
                 </td>
                 <td style="width: 150px; word-wrap: break-word; white-space: normal;">
-                    {{ $row->get_trxid }}
+                    {{ $row->get_trxid }}<br>
+                    <small class="text-primary copy-withdraw-id d-inline-block mt-1" data-id="{{ $row->trxid ?? '' }}" style="cursor: pointer;">
+                        {{ $row->trxid ? 'Withdraw ID: ' . $row->trxid : 'Withdraw ID: N/A' }}
+                    </small>
                 </td>
 
               
