@@ -572,24 +572,55 @@ class ReactNativeModemController extends Controller
             You have received payment Tk 55.00 from 01929952387. Fee Tk 0.00. Balance Tk 55.59.TrxID CJKOGO2GAQ at 20/10/2025 18:00
             */
 
-            if (str_contains($msg, 'received payment') && $sendcodeLower === 'bKash') {
-                $smsbodytype = 'bkPayment';
-                $baltype = 'plus';
-                $comm = 0;
+            // if (str_contains($msg, 'received payment') && $sendcodeLower === 'bKash') {
+            //     $smsbodytype = 'bkPayment';
+            //     $baltype = 'plus';
+            //     $comm = 0;
 
-                $amount = floatval(str_replace(',', '', getStringBetween($msg, 'payment Tk ', ' from')));
-                $number = trim(getStringBetween($msg, 'from ', '. Fee'));
-                $fee = floatval(str_replace(',', '', getStringBetween($msg, 'Fee Tk ', '. Balance')));
-                $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'Balance Tk ', '.TrxID')));
-                $trxid = trim(getStringBetween($msg, 'TrxID ', ' at'));
+            //     $amount = floatval(str_replace(',', '', getStringBetween($msg, 'payment Tk ', ' from')));
+            //     $number = trim(getStringBetween($msg, 'from ', '. Fee'));
+            //     $fee = floatval(str_replace(',', '', getStringBetween($msg, 'Fee Tk ', '. Balance')));
+            //     $lastbal = floatval(str_replace(',', '', getStringBetween($msg, 'Balance Tk ', '.TrxID')));
+            //     $trxid = trim(getStringBetween($msg, 'TrxID ', ' at'));
 
-                // Extract the date at the end
-                $date = substr($msg, -16); // "20/10/2025 18:00"
-                $hours = substr($date, 11, 2);
+            //     // Extract the date at the end
+            //     $date = substr($msg, -16); // "20/10/2025 18:00"
+            //     $hours = substr($date, 11, 2);
 
-                // Format date/time properly
-                $sms_date = $hours >= 12 ? Carbon::createFromFormat('d/m/Y H:i', $date)->format('Y-m-d H:i') : Carbon::createFromFormat('d/m/Y h:i', $date)->format('Y-m-d H:i');
-            }
+            //     // Format date/time properly
+            //     $sms_date = $hours >= 12 ? Carbon::createFromFormat('d/m/Y H:i', $date)->format('Y-m-d H:i') : Carbon::createFromFormat('d/m/Y h:i', $date)->format('Y-m-d H:i');
+            // }
+
+
+
+if (str_contains($msg, 'received payment') && $sendcodeLower === 'bKash') {
+    $smsbodytype = 'bkPayment';
+    $baltype = 'plus';
+    $comm = 0;
+
+    $amount = floatval(str_replace(',', '', getStringBetween($msg, 'payment Tk ', ' from')));
+    $number = trim(getStringBetween($msg, 'from ', '. Fee'));
+    $fee = floatval(str_replace(',', '', getStringBetween($msg, 'Fee Tk ', '. Balance')));
+
+    // Balance: try both ". TrxID" and ".TrxID"
+    $lastbalStr = getStringBetween($msg, 'Balance Tk ', '. TrxID');
+    if ($lastbalStr === '') {
+        $lastbalStr = getStringBetween($msg, 'Balance Tk ', '.TrxID');
+    }
+    $lastbal = floatval(str_replace(',', '', $lastbalStr));
+
+    $trxid = trim(getStringBetween($msg, 'TrxID ', ' at'));
+
+    // Extract the date at the end (ensure no trailing spaces/newlines)
+    $cleanMsg = trim($msg);
+    $date = substr($cleanMsg, -16); // "20/10/2025 18:00"
+    $hours = substr($date, 11, 2);
+
+    // Format date/time properly
+    $sms_date = $hours >= 12
+        ? Carbon::createFromFormat('d/m/Y H:i', $date)->format('Y-m-d H:i')
+        : Carbon::createFromFormat('d/m/Y h:i', $date)->format('Y-m-d H:i');
+}
 
             /*
             Payment Received. Amount: Tk 50.00 Customer: 01929952387 TxnID: 74HΝΕΚΟ8 Balance: Tk 247.78 20/10/2025 17:58
